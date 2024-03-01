@@ -1,5 +1,4 @@
-pytorch_env/
-pytorch_env/*
+trainer_env/
 data/*
 
 
