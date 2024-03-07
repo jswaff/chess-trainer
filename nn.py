@@ -1,39 +1,21 @@
 import copy
+import time
+
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader, SubsetRandomSampler
+from data import SingleCsvDataset
 
 
-# the dataset class
-# TODO: support for very large CSV files
-class SingleCsvDataset(Dataset):
-    def __init__(self, file_path, device='cpu'):
-        self.df = pd.read_csv(file_path, header=None, nrows=1024*10)
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        X = self.df.iloc[idx, 0:10]
-        y = self.df.iloc[idx, 10:]
-
-        X = torch.tensor(X.values, dtype=torch.float32).to(device)
-        y = torch.tensor(y.values, dtype=torch.float32).to(device)
-
-        return X, y
-
+num_features = 768
+batch_size = 256
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 print("device: ", device)
 
-# data loader
-dataset = SingleCsvDataset(file_path='data/mat0.csv', device=device)
-print(dataset.__getitem__(0))
-print(dataset.__getitem__(1))
-print(dataset.__getitem__(2))
+dataset = SingleCsvDataset(num_features=num_features, file_path='data/mat0.csv', device=device)
 
 # create data indices for training and test splits
 dataset_size = len(dataset)
@@ -52,28 +34,29 @@ train_sampler = SubsetRandomSampler(train_indices)
 test_sampler = SubsetRandomSampler(test_indices)
 valid_sampler = SubsetRandomSampler(valid_indices)
 
-batch_size = 256
 train_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=train_sampler)
 test_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=test_sampler)
 valid_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=valid_sampler)
 
-
 # define the model
 model = nn.Sequential(
-    nn.Linear(10, 1)
+    nn.Linear(num_features, 1)
     , nn.Identity()
 ).to(device)
 
 # loss function and optimizer
 loss_fn = nn.MSELoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01) # TODO: optimal lr?  try Adam?
+optimizer = optim.SGD(model.parameters(), lr=0.01)
 # optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 def train(model, num_epochs, train_dl, valid_dl):
     loss_hist_train = [0] * num_epochs
     loss_hist_valid = [0] * num_epochs
-    best_loss = np.inf
+    min_loss = np.inf
+    training_start_time = time.time()
+    no_improvement_cnt = 0
     for epoch in range(num_epochs):
+        epoch_start_time = time.time()
         model.train()
         for x_batch, y_batch in train_dl:
             pred = model(x_batch)
@@ -92,33 +75,49 @@ def train(model, num_epochs, train_dl, valid_dl):
                 loss = loss_fn(pred, y_batch)
                 loss_hist_valid[epoch] += loss.item()
             loss_hist_valid[epoch] /= len(valid_dl.dataset)
-            if loss_hist_valid[epoch] < best_loss:
-                best_loss = loss_hist_valid[epoch]
-                best_weights = copy.deepcopy(model.state_dict())
-                # TOOD: save weights, reload option?
+
+        # update best
+        if loss_hist_valid[epoch] < min_loss:
+            no_improvement_cnt = 0
+            min_loss = loss_hist_valid[epoch]
+            best_weights = copy.deepcopy(model.state_dict())
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': min_loss
+            }, 'model-out.pt')
+        else:
+            no_improvement_cnt = no_improvement_cnt+1
 
         if (epoch + 1) % 10 == 0:
-            print(f'Epoch {epoch + 1} loss: {loss_hist_valid[epoch]:.4f}')
-            print(f'weights: {model.state_dict()}')
+            print(f'Epoch {epoch + 1} loss: {loss_hist_valid[epoch]:.4f} ',
+                  'epoch time: {:.2f}m'.format((time.time()-epoch_start_time) / 60),
+                  'total time: {:.2f}m'.format((time.time()-training_start_time) / 60))
 
-        # TODO: early stop
-    return best_loss, best_weights, loss_hist_train, loss_hist_valid
+        if no_improvement_cnt > 10:
+            print(f'No improvement in {no_improvement_cnt} epochs, exiting')
+            break
+
+    print('Total training time: {:.2f}m'.format((time.time()-training_start_time) / 60))
+    return min_loss, best_weights, loss_hist_train, loss_hist_valid
 
 
 # train
 torch.manual_seed(1)
-num_epochs = 300
+num_epochs = 500
 hist = train(model, num_epochs, train_dl, valid_dl)
-print(f'best validation loss: {hist[0]}')
-print(f'best validation weights: {hist[1]}')
+print(f'Min validation loss: {hist[0]}')
+print(f'Best validation weights: {hist[1]}')
 
+# measure performance against test set
 loss_test = 0
 for x_batch, y_batch in test_dl:
     pred = model(x_batch)
     loss = loss_fn(pred, y_batch)
     loss_test += loss.item()
 loss_test /= len(test_dl.dataset)
-print(f'test loss: {loss_test}')
+print(f'Test loss: {loss_test}')
 
 # visualize learning curves
 import matplotlib.pyplot as plt
