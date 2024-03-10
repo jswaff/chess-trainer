@@ -6,8 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, SubsetRandomSampler
-from data import SingleCsvDataset
-
+from data import EpdDataset
 
 num_features = 768
 batch_size = 256
@@ -15,8 +14,7 @@ batch_size = 256
 device = "cpu"
 print("device: ", device)
 
-dataset = SingleCsvDataset(num_features=num_features, file_path='data/mat0.csv', device=device)
-
+dataset = EpdDataset(file_path='data/mat0-fen.csv', device=device)
 # create data indices for training and test splits
 dataset_size = len(dataset)
 print(f'dataset_size: {dataset_size}')
@@ -34,9 +32,9 @@ train_sampler = SubsetRandomSampler(train_indices)
 test_sampler = SubsetRandomSampler(test_indices)
 valid_sampler = SubsetRandomSampler(valid_indices)
 
-train_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=train_sampler)
-test_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=test_sampler)
-valid_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=valid_sampler)
+train_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=train_sampler, num_workers=8)
+test_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=test_sampler, num_workers=8)
+valid_dl = DataLoader(dataset=dataset, batch_size=batch_size, sampler=valid_sampler, num_workers=8)
 
 # define the model
 model = nn.Sequential(
@@ -46,8 +44,8 @@ model = nn.Sequential(
 
 # loss function and optimizer
 loss_fn = nn.MSELoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01)
-# optimizer = optim.Adam(model.parameters(), lr=0.001)
+#optimizer = optim.SGD(model.parameters(), lr=0.001)  # try weight decay?
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 def train(model, num_epochs, train_dl, valid_dl):
     loss_hist_train = [0] * num_epochs
@@ -77,26 +75,32 @@ def train(model, num_epochs, train_dl, valid_dl):
             loss_hist_valid[epoch] /= len(valid_dl.dataset)
 
         # update best
+        improvement=0
         if loss_hist_valid[epoch] < min_loss:
-            no_improvement_cnt = 0
+            improvement = min_loss - loss_hist_valid[epoch]
             min_loss = loss_hist_valid[epoch]
             best_weights = copy.deepcopy(model.state_dict())
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'loss': min_loss
+                'loss': min_loss,
+                'loss_hist_train': loss_hist_train,
+                'loss_hist_valid': loss_hist_valid,
             }, 'model-out.pt')
-        else:
+
+        if improvement < 0.0001:
             no_improvement_cnt = no_improvement_cnt+1
 
-        if (epoch + 1) % 10 == 0:
-            print(f'Epoch {epoch + 1} loss: {loss_hist_valid[epoch]:.4f} ',
-                  'epoch time: {:.2f}m'.format((time.time()-epoch_start_time) / 60),
-                  'total time: {:.2f}m'.format((time.time()-training_start_time) / 60))
+        print(f'Epoch {epoch + 1} loss: {loss_hist_valid[epoch]:.4f} ',
+              'epoch time: {:.2f}m'.format((time.time()-epoch_start_time) / 60),
+              'total time: {:.2f}m'.format((time.time()-training_start_time) / 60),
+              f'improvement: {improvement:.4f} no_improvement_cnt: {no_improvement_cnt}')
 
-        if no_improvement_cnt > 10:
-            print(f'No improvement in {no_improvement_cnt} epochs, exiting')
+        if no_improvement_cnt > 5:
+            print('Early exit triggered.')
+            loss_hist_train = loss_hist_train[0:epoch]
+            loss_hist_valid = loss_hist_valid[0:epoch]
             break
 
     print('Total training time: {:.2f}m'.format((time.time()-training_start_time) / 60))
@@ -105,7 +109,7 @@ def train(model, num_epochs, train_dl, valid_dl):
 
 # train
 torch.manual_seed(1)
-num_epochs = 500
+num_epochs = 2
 hist = train(model, num_epochs, train_dl, valid_dl)
 print(f'Min validation loss: {hist[0]}')
 print(f'Best validation weights: {hist[1]}')
@@ -120,12 +124,12 @@ loss_test /= len(test_dl.dataset)
 print(f'Test loss: {loss_test}')
 
 # visualize learning curves
-import matplotlib.pyplot as plt
-x_arr = np.arange(len(hist[2])) + 1
-fig = plt.figure(figsize=(12,4))
-ax = fig.add_subplot(1,2,1)
-ax.plot(x_arr, hist[2], '-o', label='Train loss')
-ax.plot(x_arr, hist[3], '--<', label='Validation loss')
-ax.legend(fontsize=15)
-plt.show()
+#import matplotlib.pyplot as plt
+#x_arr = np.arange(len(hist[2])) + 1
+#fig = plt.figure(figsize=(12,4))
+#ax = fig.add_subplot(1,2,1)
+#ax.plot(x_arr, hist[2], '-o', label='Train loss')
+#ax.plot(x_arr, hist[3], '--<', label='Validation loss')
+#ax.legend(fontsize=15)
+#plt.show()
 
