@@ -1,8 +1,4 @@
 .idea/
 trainer_env/
 data/*
-*.pt
 __pycache__/
-
-
-
