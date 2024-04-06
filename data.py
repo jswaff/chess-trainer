@@ -26,17 +26,3 @@ class EpdDataset(Dataset):
         y = torch.tensor(y, dtype=torch.float32).to(self.device)
 
         return X,y
-
-#dataset = EpdDataset(file_path='data/mat0-fen.csv')
-#print(f'len {dataset.__len__()}')
-#dataset.__getitem__(2)
-
-
-# model = nn.Sequential(
-#     nn.Linear(768, 1)
-#     , nn.Identity()
-# ).to("cpu")
-# model.load_state_dict(torch.load("model-out.pt"))
-#print(torch.load("model-out.pt"))
-
-
