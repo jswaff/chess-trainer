@@ -2,8 +2,8 @@ import torch
 
 class CFG:
 
-    input_path = 'data/mat0.csv'
-    model_name = 'models/mat0.pt'
+    input_path = 'data/mgpst.csv'
+    model_name = 'models/mgpst.pt'
 
     num_features = 768
     batch_size = 256
