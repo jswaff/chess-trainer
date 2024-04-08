@@ -2,8 +2,9 @@ import torch
 
 class CFG:
 
-    input_path = 'data/mgpst.csv'
-    model_name = 'models/mgpst.pt'
+    input_path = 'data/pst-tapered.csv'
+    model_name = 'models/pst-tapered-test.pt'
+    num_samples = 1024 * 10
 
     num_features = 768
     batch_size = 256
