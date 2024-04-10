@@ -18,13 +18,12 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
         model.train()
         for x_batch, y_batch in train_dl:
             pred = model(x_batch)
-
             loss = loss_fn(pred, y_batch)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
             loss_hist_train[epoch] += loss.item()
-        loss_hist_train[epoch] /= len(train_dl.dataset)
+        loss_hist_train[epoch] /= len(train_dl)
 
         # evaluate accuracy at end of each epoch
         model.eval()
@@ -33,7 +32,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
                 pred = model(x_batch)
                 loss = loss_fn(pred, y_batch)
                 loss_hist_valid[epoch] += loss.item()
-            loss_hist_valid[epoch] /= len(valid_dl.dataset)
+            loss_hist_valid[epoch] /= len(valid_dl)
 
         # update best
         improvement = 0
@@ -53,7 +52,9 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
         if improvement < 0.0001:
             no_improvement_cnt = no_improvement_cnt + 1
 
-        print(f'Epoch {epoch + 1} loss: {loss_hist_valid[epoch]:.4f} ',
+        print(f'Epoch {epoch + 1} ',
+              f'train loss: {loss_hist_train[epoch]:.4f} ',
+              f'valid loss: {loss_hist_valid[epoch]:.4f} ',
               'epoch time: {:.2f}m'.format((time.time() - epoch_start_time) / 60),
               'total time: {:.2f}m'.format((time.time() - training_start_time) / 60),
               f'improvement: {improvement:.4f} no_improvement_cnt: {no_improvement_cnt}')

@@ -36,7 +36,10 @@ def build_data_loaders():
     indices = list(range(dataset_size))
     test_dataset_size = int(np.floor(0.1 * dataset_size))
     valid_dataset_size = test_dataset_size
-    np.random.seed(42)
+    print(f'test_dataset_size: {test_dataset_size}')
+    print(f'valid_dataset_size: {valid_dataset_size}')
+
+    np.random.seed()
     np.random.shuffle(indices)
     train_indices, test_indices = indices[test_dataset_size:], indices[:test_dataset_size]
     train_indices, valid_indices = train_indices[valid_dataset_size:], train_indices[:valid_dataset_size]
@@ -45,10 +48,11 @@ def build_data_loaders():
     test_sampler = SubsetRandomSampler(test_indices)
     valid_sampler = SubsetRandomSampler(valid_indices)
 
-    train_dl = DataLoader(dataset=dataset, batch_size=CFG.batch_size, sampler=train_sampler,
+    train_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=CFG.batch_size, sampler=train_sampler,
                           num_workers=CFG.num_workers)
-    test_dl = DataLoader(dataset=dataset, batch_size=CFG.batch_size, sampler=test_sampler, num_workers=CFG.num_workers)
-    valid_dl = DataLoader(dataset=dataset, batch_size=CFG.batch_size, sampler=valid_sampler,
+    test_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=CFG.batch_size, sampler=test_sampler,
+                         num_workers=CFG.num_workers)
+    valid_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=CFG.batch_size, sampler=valid_sampler,
                           num_workers=CFG.num_workers)
 
     return train_dl, test_dl, valid_dl

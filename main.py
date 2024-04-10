@@ -17,14 +17,16 @@ train_dl, test_dl, valid_dl = build_data_loaders()
 model = nn.Sequential(
     nn.Linear(CFG.num_features, 128),
     nn.ReLU(),
-    nn.Linear(128, 32),
+    nn.Linear(128, 64),
     nn.ReLU(),
-    nn.Linear(32, 1)
+    nn.Linear(64, 1)
 ).to(CFG.device)
 
 # loss function and optimizer
 loss_fn = nn.MSELoss()
+#loss_fn = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
+#optimizer = optim.SGD(model.parameters(), lr=1e-4)
 
 # train
 torch.manual_seed(1)
@@ -38,7 +40,7 @@ traced = False
 for x_batch, y_batch in test_dl:
     pred = model(x_batch)
     loss = loss_fn(pred, y_batch)
-    loss_test += loss.item()
+    loss_test += loss.item() * x_batch.size(0)
     if not traced:
         model.load_state_dict(hist[1])
         traced_script_module = torch.jit.trace(model, x_batch)

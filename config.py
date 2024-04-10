@@ -2,9 +2,9 @@ import torch
 
 class CFG:
 
-    input_path = 'data/pst-tapered.csv'
-    model_name = 'models/pst-tapered-test.pt'
-    num_samples = 1024 * 10
+    input_path = 'data/E12.33-1M-D12-Resolved.book-labeled.csv'
+    model_name = 'models/E12.33-1M-D12-Resolved.book.pt'
+    num_samples = None
 
     num_features = 768
     batch_size = 256
