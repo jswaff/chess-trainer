@@ -4,7 +4,7 @@ class CFG:
 
     input_path = 'data/E12.33-1M-D12-Resolved.book-labeled.csv'
     model_name = 'models/E12.33-1M-D12-Resolved.book.pt'
-    num_samples = 1024 * 1024
+    num_samples = None
 
     num_features = 768
     batch_size = 256

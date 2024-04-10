@@ -14,7 +14,9 @@ def train(model, num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, op
     min_loss = np.inf
     best_weights = copy.deepcopy(model.state_dict())
     training_start_time = time.time()
-    no_improvement_cnt = 0
+    early_stop_cnt = 5
+    print('Epoch        Train        Valid        ETime        TTime        Delta        ESCnt')
+    print('-----------------------------------------------------------------------------------')
     for epoch in range(num_epochs):
         epoch_start_time = time.time()
         model.train()
@@ -37,9 +39,9 @@ def train(model, num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, op
             loss_hist_valid[epoch] /= valid_sz
 
         # update best
-        improvement = 0
+        delta = 0
         if loss_hist_valid[epoch] < min_loss:
-            improvement = min_loss - loss_hist_valid[epoch]
+            delta = loss_hist_valid[epoch] - min_loss
             min_loss = loss_hist_valid[epoch]
             best_weights = copy.deepcopy(model.state_dict())
             torch.save({
@@ -51,17 +53,18 @@ def train(model, num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, op
                 'loss_hist_valid': loss_hist_valid,
             }, CFG.model_name)
 
-        if improvement < 0.0001:
-            no_improvement_cnt = no_improvement_cnt + 1
+        if delta >= 0:
+            early_stop_cnt = early_stop_cnt - 1
 
-        print(f'Epoch {epoch + 1} ',
-              f'train loss: {loss_hist_train[epoch]:.4f} ',
-              f'valid loss: {loss_hist_valid[epoch]:.4f} ',
-              'epoch time: {:.2f}m'.format((time.time() - epoch_start_time) / 60),
-              'total time: {:.2f}m'.format((time.time() - training_start_time) / 60),
-              f'improvement: {improvement:.4f} no_improvement_cnt: {no_improvement_cnt}')
+        print(f'{epoch + 1:>5}',
+              f'{loss_hist_train[epoch]:>12.4f}',
+              f'{loss_hist_valid[epoch]:>12.4f}',
+              '{:12.2f}'.format((time.time() - epoch_start_time) / 60),
+              '{:12.2f}'.format((time.time() - training_start_time) / 60),
+              f'{delta:>12.4f}',
+              f'{early_stop_cnt:>12}')
 
-        if no_improvement_cnt > 5:
+        if early_stop_cnt == 0:
             print('Early exit triggered.')
             loss_hist_train = loss_hist_train[0:epoch]
             loss_hist_valid = loss_hist_valid[0:epoch]
