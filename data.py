@@ -36,8 +36,6 @@ def build_data_loaders():
     indices = list(range(dataset_size))
     test_dataset_size = int(np.floor(0.1 * dataset_size))
     valid_dataset_size = test_dataset_size
-    print(f'test_dataset_size: {test_dataset_size}')
-    print(f'valid_dataset_size: {valid_dataset_size}')
 
     np.random.seed()
     np.random.shuffle(indices)
@@ -55,4 +53,4 @@ def build_data_loaders():
     valid_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=CFG.batch_size, sampler=valid_sampler,
                           num_workers=CFG.num_workers)
 
-    return train_dl, test_dl, valid_dl
+    return train_dl, len(train_indices), test_dl, len(test_indices), valid_dl, len(valid_indices)

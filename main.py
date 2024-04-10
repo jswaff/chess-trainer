@@ -11,7 +11,7 @@ from train import train
 print("using device: ", CFG.device)
 
 # build data loaders
-train_dl, test_dl, valid_dl = build_data_loaders()
+train_dl, train_sz, test_dl, test_sz, valid_dl, valid_sz = build_data_loaders()
 
 # define the model
 model = nn.Sequential(
@@ -24,15 +24,13 @@ model = nn.Sequential(
 
 # loss function and optimizer
 loss_fn = nn.MSELoss()
-#loss_fn = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
-#optimizer = optim.SGD(model.parameters(), lr=1e-4)
 
 # train
 torch.manual_seed(1)
-hist = train(model, CFG.num_epochs, train_dl, valid_dl, loss_fn, optimizer)
+hist = train(model, CFG.num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, optimizer)
 print(f'Min validation loss: {hist[0]}')
-print(f'Best validation weights: {hist[1]}')
+#print(f'Best validation weights: {hist[1]}')
 
 # measure performance against test set
 loss_test = 0
@@ -40,14 +38,14 @@ traced = False
 for x_batch, y_batch in test_dl:
     pred = model(x_batch)
     loss = loss_fn(pred, y_batch)
-    loss_test += loss.item() * x_batch.size(0)
+    loss_test += loss.item() * y_batch.size(0)
     if not traced:
         model.load_state_dict(hist[1])
         traced_script_module = torch.jit.trace(model, x_batch)
         traced_script_module.save(CFG.model_name.replace(".pt", "-ts.pt"))
         traced = True
-loss_test /= len(test_dl.dataset)
-print(f'Test loss: {loss_test}')
+loss_test /= test_sz
+print(f'Test loss: {loss_test:.4f}')
 
 # visualize learning curves
 if CFG.show_plots:

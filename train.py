@@ -6,7 +6,9 @@ import torch
 from config import CFG
 
 
-def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
+# note: the dataset used in the data loaders is the full dataset, so we can't calculate
+# loss using len(dl.dataset)
+def train(model, num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, optimizer):
     loss_hist_train = [0] * num_epochs
     loss_hist_valid = [0] * num_epochs
     min_loss = np.inf
@@ -22,8 +24,8 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_hist_train[epoch] += loss.item()
-        loss_hist_train[epoch] /= len(train_dl)
+            loss_hist_train[epoch] += loss.item() * y_batch.size(0)
+        loss_hist_train[epoch] /= train_sz
 
         # evaluate accuracy at end of each epoch
         model.eval()
@@ -31,8 +33,8 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             for x_batch, y_batch in valid_dl:
                 pred = model(x_batch)
                 loss = loss_fn(pred, y_batch)
-                loss_hist_valid[epoch] += loss.item()
-            loss_hist_valid[epoch] /= len(valid_dl)
+                loss_hist_valid[epoch] += loss.item() * y_batch.size(0)
+            loss_hist_valid[epoch] /= valid_sz
 
         # update best
         improvement = 0
