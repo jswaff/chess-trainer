@@ -15,9 +15,9 @@ train_dl, train_sz, test_dl, test_sz, valid_dl, valid_sz = build_data_loaders()
 
 # define the model
 model = nn.Sequential(
-    nn.Linear(CFG.num_features, 128),
+    nn.Linear(CFG.num_features, 2048),
     nn.ReLU(),
-    nn.Linear(128, 64),
+    nn.Linear(2048, 64),
     nn.ReLU(),
     nn.Linear(64, 1)
 ).to(CFG.device)
@@ -29,7 +29,7 @@ optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
 # train
 torch.manual_seed(1)
 hist = train(model, CFG.num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, optimizer)
-print(f'Min validation loss: {hist[0]}')
+print(f'Min validation loss: {hist[0]:.4f}')
 #print(f'Best validation weights: {hist[1]}')
 
 # measure performance against test set
