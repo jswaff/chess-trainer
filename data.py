@@ -1,3 +1,5 @@
+import mmap
+
 import numpy as np
 import pandas as pd
 import torch
@@ -29,8 +31,39 @@ class EpdDataset(Dataset):
         return X, y
 
 
+class MMEpdDataSet(Dataset):
+    def __init__(self, file_path, device='cpu'):
+        self.device = device
+
+        self.offsets = [0]
+        with open(file_path, "r+b") as f:
+            self.f_mmap = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
+            for _ in iter(self.f_mmap.readline, b""):
+                self.offsets.append(self.f_mmap.tell())  # where *next* line would start
+            self.offsets.pop()
+
+    def __len__(self):
+        return len(self.offsets)
+
+    def __getitem__(self, idx):
+        self.f_mmap.seek(self.offsets[idx])
+        line_bytes = self.f_mmap.readline()
+        line_str = str(line_bytes, encoding='utf-8').rstrip()
+        y, epd = line_str.split(',', 1)
+        y = int(y)
+        X, ptm = to_one_hot(epd)
+        if ptm == 'b':
+            y = -y
+
+        X = torch.tensor(X, dtype=torch.float32).to(self.device)
+        y = torch.tensor([y], dtype=torch.float32).to(self.device)
+
+        return X, y
+
+
 def build_data_loaders():
-    dataset = EpdDataset(file_path=CFG.input_path, num_samples=CFG.num_samples, device=CFG.device)
+    #dataset = EpdDataset(file_path=CFG.input_path, num_samples=CFG.num_samples, device=CFG.device)
+    dataset = MMEpdDataSet(file_path=CFG.input_path, device=CFG.device)
     dataset_size = len(dataset)
     print(f'dataset_size: {dataset_size}')
     indices = list(range(dataset_size))

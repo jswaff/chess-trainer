@@ -2,8 +2,8 @@ import torch
 
 class CFG:
 
-    input_path = 'data/E12.33-1M-D12-Resolved.book-labeled.csv'
-    model_name = 'models/E12.33-1M-D12-Resolved.book.pt'
+    input_path = 'data/prophet-4_3.csv'
+    model_name = 'models/prophet-4_3.pt'
     num_samples = None
 
     num_features = 768
