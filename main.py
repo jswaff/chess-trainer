@@ -8,7 +8,7 @@ from config import CFG
 from data import build_data_loaders
 from train import train
 
-print("using device: ", CFG.device)
+print("device: ", CFG.device)
 
 # build data loaders
 train_dl, train_sz, test_dl, test_sz, valid_dl, valid_sz = build_data_loaders()
@@ -36,9 +36,11 @@ print(f'Min validation loss: {hist[0]:.4f}')
 loss_test = 0
 traced = False
 for x_batch, y_batch in test_dl:
+    x_batch = x_batch.squeeze(0)
+    y_batch = y_batch.squeeze(0)
     pred = model(x_batch)
     loss = loss_fn(pred, y_batch)
-    loss_test += loss.item() * y_batch.size(0)
+    loss_test += loss.item() #* y_batch.size(0)
     if not traced:
         model.load_state_dict(hist[1])
         traced_script_module = torch.jit.trace(model, x_batch)
