@@ -13,7 +13,7 @@ def main():
     # torch.multiprocessing.set_start_method('spawn')
     print("device: ", CFG.device)
 
-    train_dl, train_sz, test_dl, test_sz, valid_dl, valid_sz = build_data_loaders()
+    train_dl, test_dl, valid_dl = build_data_loaders()
 
     # define the model
     model = nn.Sequential(
@@ -30,7 +30,7 @@ def main():
 
     # train
     torch.manual_seed(1)
-    hist = train(model, CFG.num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, optimizer)
+    hist = train(model, CFG.num_epochs, train_dl, valid_dl, loss_fn, optimizer)
     print(f'Min validation loss: {hist[0]:.4f}')
     # print(f'Best validation weights: {hist[1]}')
 
@@ -42,13 +42,13 @@ def main():
         y_batch = y_batch.squeeze(0).to(CFG.device)
         pred = model(x_batch)
         loss = loss_fn(pred, y_batch)
-        loss_test += loss.item()  # * y_batch.size(0)
+        loss_test += loss.item()
         if not traced:
             model.load_state_dict(hist[1])
             traced_script_module = torch.jit.trace(model, x_batch)
             traced_script_module.save(CFG.model_name.replace(".pt", "-ts.pt"))
             traced = True
-    loss_test /= test_sz
+    loss_test /= len(test_dl)
     print(f'Test loss: {loss_test:.4f}')
 
     # visualize learning curves
