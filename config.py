@@ -2,7 +2,7 @@ import torch
 
 class CFG:
 
-    test_name = 'prophet-4_0'
+    test_name = 'rr'
     input_path = 'data/' + test_name + '.csv'
     model_name = 'models/' + test_name + '.pt'
     num_samples = None

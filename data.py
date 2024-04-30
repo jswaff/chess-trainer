@@ -75,12 +75,8 @@ def build_data_loaders():
     test_sampler = SubsetRandomSampler(test_indices)
     valid_sampler = SubsetRandomSampler(valid_indices)
 
-    # when using the MMEpdDataSet, set batch_size=1 as it is already batching
-    train_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=train_sampler,
-                          num_workers=CFG.num_workers, pin_memory=True)
-    test_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=test_sampler,
-                         num_workers=CFG.num_workers, pin_memory=True)
-    valid_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=valid_sampler,
-                          num_workers=CFG.num_workers, pin_memory=True)
+    train_dl = DataLoader(dataset=dataset, sampler=train_sampler, num_workers=CFG.num_workers, pin_memory=True)
+    test_dl = DataLoader(dataset=dataset, sampler=test_sampler, num_workers=CFG.num_workers, pin_memory=True)
+    valid_dl = DataLoader(dataset=dataset, sampler=valid_sampler, num_workers=CFG.num_workers, pin_memory=True)
 
     return train_dl, test_dl, valid_dl
