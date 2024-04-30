@@ -83,4 +83,4 @@ def build_data_loaders():
     valid_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=valid_sampler,
                           num_workers=CFG.num_workers, pin_memory=True)
 
-    return train_dl, len(train_indices), test_dl, len(test_indices), valid_dl, len(valid_indices)
+    return train_dl, test_dl, valid_dl
