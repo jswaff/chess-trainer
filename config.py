@@ -2,7 +2,7 @@ import torch
 
 class CFG:
 
-    test_name = 'rr3-1c'
+    test_name = 'rr3-2d'
     input_path = 'data/' + test_name + '.csv'
     model_name = 'models/' + test_name + '.pt'
     num_samples = None
@@ -13,6 +13,6 @@ class CFG:
     num_epochs = 100
     lr = 0.001
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu" #torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     show_plots = True

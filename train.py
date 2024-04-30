@@ -22,8 +22,8 @@ def train(model, num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, op
         epoch_start_time = time.time()
         model.train()
         for x_batch, y_batch in train_dl:
-            x_batch = x_batch.squeeze(0)
-            y_batch = y_batch.squeeze(0)
+            x_batch = x_batch.squeeze(0).to(CFG.device)
+            y_batch = y_batch.squeeze(0).to(CFG.device)
             #print(f'x_batch.size: {x_batch.shape}  y_batch.size: {y_batch.shape}')
             #x_batch.size: torch.Size([256, 768])  y_batch.size: torch.Size([256, 1]) 256
             #x_batch.size: torch.Size([1, 256, 768]) y_batch.size: torch.Size([1, 256, 1])
@@ -39,8 +39,8 @@ def train(model, num_epochs, train_dl, train_sz, valid_dl, valid_sz, loss_fn, op
         model.eval()
         with torch.no_grad():
             for x_batch, y_batch in valid_dl:
-                x_batch = x_batch.squeeze(0)
-                y_batch = y_batch.squeeze(0)
+                x_batch = x_batch.squeeze(0).to(CFG.device)
+                y_batch = y_batch.squeeze(0).to(CFG.device)
                 pred = model(x_batch)
                 loss = loss_fn(pred, y_batch)
                 loss_hist_valid[epoch] += loss.item()  #* y_batch.size(0)

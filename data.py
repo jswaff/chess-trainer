@@ -5,34 +5,13 @@ import pandas as pd
 import torch
 
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
+import torch.multiprocessing
 from config import CFG
 from epd import to_one_hot
 
-
-class EpdDataset(Dataset):
-    def __init__(self, file_path, num_samples=None, device='cpu'):
-        self.df = pd.read_csv(file_path, header=None, nrows=num_samples)
-        self.device = device
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        y = self.df.iloc[idx, 0]
-        y = y[..., np.newaxis]
-        epd = self.df.iloc[idx, 1]
-        X, ptm = to_one_hot(epd)
-        if ptm == 'b':
-            y = -y
-
-        X = torch.tensor(X, dtype=torch.float32).to(self.device)
-        y = torch.tensor(y, dtype=torch.float32).to(self.device)
-
-        return X, y
-
-
 class MMEpdDataSet(Dataset):
     def __init__(self, file_path, batch_size, device='cpu'):
+        print("initializing dataset")
         self.batch_size = batch_size
         self.device = device
 
@@ -47,6 +26,7 @@ class MMEpdDataSet(Dataset):
 
     def __len__(self):
         return len(self.offsets)
+
 
     def __getitem__(self, idx):
         self.f_mmap.seek(self.offsets[idx])
@@ -72,8 +52,10 @@ class MMEpdDataSet(Dataset):
                 y = -y
             ys[i][0] = y
 
-        Xs = torch.tensor(Xs[:lines_read,:], dtype=torch.float32).to(self.device)
-        ys = torch.tensor(ys[:lines_read,:], dtype=torch.float32).to(self.device)
+        Xs = torch.tensor(Xs[:lines_read,:], dtype=torch.float32)
+        ys = torch.tensor(ys[:lines_read,:], dtype=torch.float32)
+        # Xs = torch.rand([512, 768], dtype=torch.float32)
+        # ys = torch.rand([512, 1], dtype=torch.float32)
 
         return Xs, ys
 
@@ -99,10 +81,10 @@ def build_data_loaders():
 
     # when using the MMEpdDataSet, set batch_size=1 as it is already batching
     train_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=train_sampler,
-                          num_workers=CFG.num_workers)
+                          num_workers=CFG.num_workers, pin_memory=True)
     test_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=test_sampler,
-                         num_workers=CFG.num_workers)
+                         num_workers=CFG.num_workers, pin_memory=True)
     valid_dl = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=valid_sampler,
-                          num_workers=CFG.num_workers)
+                          num_workers=CFG.num_workers, pin_memory=True)
 
     return train_dl, len(train_indices), test_dl, len(test_indices), valid_dl, len(valid_indices)
