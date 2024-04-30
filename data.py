@@ -1,7 +1,6 @@
 import mmap
 
 import numpy as np
-import pandas as pd
 import torch
 
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
@@ -9,11 +8,11 @@ import torch.multiprocessing
 from config import CFG
 from epd import to_one_hot
 
+
 class MMEpdDataSet(Dataset):
-    def __init__(self, file_path, batch_size, device='cpu'):
+    def __init__(self, file_path, batch_size):
         print("initializing dataset")
         self.batch_size = batch_size
-        self.device = device
 
         self.offsets = [0]
         with open(file_path, "r+b") as f:
@@ -22,11 +21,9 @@ class MMEpdDataSet(Dataset):
             for idx, _ in enumerate(iter(self.f_mmap.readline, b""), start=1):
                 if idx % batch_size == 0:
                     self.offsets.append(self.f_mmap.tell())  # where *next* line would start
-                    #print(f'idx: {idx} offset: {self.f_mmap.tell()}')
 
     def __len__(self):
         return len(self.offsets)
-
 
     def __getitem__(self, idx):
         self.f_mmap.seek(self.offsets[idx])
@@ -45,15 +42,15 @@ class MMEpdDataSet(Dataset):
                 break
             y, epd = line_str.split(',', 1)
             y = int(y)
-            X, ptm = to_one_hot(epd) # TODO: faster to set tensor directly?
+            X, ptm = to_one_hot(epd)  # TODO: faster to set tensor directly?
             for j in range(768):
                 Xs[i][j] = X[j]
             if ptm == 'b':
                 y = -y
             ys[i][0] = y
 
-        Xs = torch.tensor(Xs[:lines_read,:], dtype=torch.float32)
-        ys = torch.tensor(ys[:lines_read,:], dtype=torch.float32)
+        Xs = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
+        ys = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
         # Xs = torch.rand([512, 768], dtype=torch.float32)
         # ys = torch.rand([512, 1], dtype=torch.float32)
 
@@ -62,8 +59,7 @@ class MMEpdDataSet(Dataset):
 
 def build_data_loaders():
     print(f'input_path: {CFG.input_path}')
-    #dataset = EpdDataset(file_path=CFG.input_path, num_samples=CFG.num_samples, device=CFG.device)
-    dataset = MMEpdDataSet(file_path=CFG.input_path, batch_size=CFG.batch_size, device=CFG.device)
+    dataset = MMEpdDataSet(file_path=CFG.input_path, batch_size=CFG.batch_size)
     dataset_size = len(dataset)
     print(f'dataset_size: {dataset_size}')
     indices = list(range(dataset_size))
