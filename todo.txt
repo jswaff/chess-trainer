@@ -1,5 +1,3 @@
-can to_one_hot load data into a tensor directly?
-
 does performance get better with more data?
 
 do all at once
