@@ -51,8 +51,8 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': min_loss,
-                'loss_hist_train': loss_hist_train,
-                'loss_hist_valid': loss_hist_valid,
+                'loss_hist_train': loss_hist_train[0:epoch],
+                'loss_hist_valid': loss_hist_valid[0:epoch],
             }, CFG.model_name)
 
         if delta >= 0:

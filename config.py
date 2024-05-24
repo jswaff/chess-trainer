@@ -1,7 +1,9 @@
 import torch
 
-class CFG:
+from model import Model
 
+
+class CFG:
     test_name = 'E12.52-1M-D12'
     input_path = 'data/' + test_name + '.csv'
     model_name = 'models/' + test_name + '.pt'
@@ -13,6 +15,8 @@ class CFG:
     num_epochs = 100
     lr = 0.001
 
-    device = "cpu" #torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = Model(num_features, device)
 
     show_plots = True
