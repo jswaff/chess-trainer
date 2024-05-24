@@ -1,10 +1,4 @@
-can to_one_hot load data into a tensor directly?
-
-does performance get better with more data?
-
-do all at once
-
-does GPU help?  it was quite a bit faster when the dataset was all in-memory.  
+does GPU help?  it was quite a bit faster when the dataset was all in-memory.
 unable to use Cuda with MMEpdDataSet in its current form, because mmap.mmap cannot
 be "pickled."  Potential solutions:
 - use file based mmap - https://mmappickle.readthedocs.io/en/latest/

@@ -6,7 +6,6 @@ import torch
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 import torch.multiprocessing
 from config import CFG
-from epd import to_one_hot
 
 
 class MMEpdDataSet(Dataset):
@@ -29,8 +28,8 @@ class MMEpdDataSet(Dataset):
         self.f_mmap.seek(self.offsets[idx])
         self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-        Xs = np.ndarray(shape=(self.batch_size, 768))
-        ys = np.ndarray(shape=(self.batch_size, 1))
+        Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
+        ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
 
         lines_read = 0
         for i in range(self.batch_size):
@@ -41,18 +40,61 @@ class MMEpdDataSet(Dataset):
             else:
                 break
             y, epd = line_str.split(',', 1)
-            y = int(y)
-            X, ptm = to_one_hot(epd)  # TODO: faster to set tensor directly?
-            for j in range(768):
-                Xs[i][j] = X[j]
-            if ptm == 'b':
-                y = -y
-            ys[i][0] = y
+            encode(epd, int(y), Xs, ys, i)
 
-        Xs = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
-        ys = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
+        Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
+        ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
 
-        return Xs, ys
+        return Xs_tensor, ys_tensor
+
+
+def encode(epd, w_score, Xs, ys, idx):
+    epd_parts = epd.split(" ")
+    ranks = epd_parts[0].split("/")
+    ptm = epd_parts[1]
+
+    sq = 0
+    for r, rank in enumerate(ranks):
+        for ch in rank:
+            if '1' <= ch <= '8':
+                sq += int(ch)
+            else:
+                if ch == 'R':
+                    Xs[idx][sq] = 1
+                elif ch == 'r':
+                    Xs[idx][64 + sq] = 1
+                elif ch == 'N':
+                    Xs[idx][128 + sq] = 1
+                elif ch == 'n':
+                    Xs[idx][192 + sq] = 1
+                elif ch == 'B':
+                    Xs[idx][256 + sq] = 1
+                elif ch == 'b':
+                    Xs[idx][320 + sq] = 1
+                elif ch == 'Q':
+                    Xs[idx][384 + sq] = 1
+                elif ch == 'q':
+                    Xs[idx][448 + sq] = 1
+                elif ch == 'K':
+                    Xs[idx][512 + sq] = 1
+                elif ch == 'k':
+                    Xs[idx][576 + sq] = 1
+                elif ch == 'P':
+                    Xs[idx][640 + sq] = 1
+                elif ch == 'p':
+                    Xs[idx][704 + sq] = 1
+                else:
+                    raise Exception(f'invalid FEN character {ch}')
+                sq += 1
+    if sq != 64:
+        raise Exception(f'invalid square count {sq}')
+
+    if ptm == 'w':
+        ys[idx][0] = w_score
+    elif ptm == 'b':
+        ys[idx][0] = -w_score
+    else:
+        raise Exception(f'invalid ptm {ptm}')
 
 
 def build_data_loaders():
