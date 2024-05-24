@@ -21,15 +21,12 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
         for x_batch, y_batch in train_dl:
             x_batch = x_batch.squeeze(0).to(CFG.device)
             y_batch = y_batch.squeeze(0).to(CFG.device)
-            #print(f'x_batch.size: {x_batch.shape}  y_batch.size: {y_batch.shape}')
-            #x_batch.size: torch.Size([256, 768])  y_batch.size: torch.Size([256, 1]) 256
-            #x_batch.size: torch.Size([1, 256, 768]) y_batch.size: torch.Size([1, 256, 1])
             pred = model(x_batch)
             loss = loss_fn(pred, y_batch)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_hist_train[epoch] += loss.item() # this is for an entire batch
+            loss_hist_train[epoch] += loss.item()  # this is for an entire batch
         loss_hist_train[epoch] /= len(train_dl)
 
         # evaluate accuracy at end of each epoch

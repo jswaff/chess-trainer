@@ -1,0 +1,40 @@
+show graph/metrics from saved model - do torch.load and ref dictionary:
+   - epoch
+   - model_state_dict
+   - optimizer_state_dict
+   - loss
+   - loss_hist_train
+   - loss_hist_valid
+
+how to start from pre-trained data? - stop one early and resume.
+
+does performance get better with more data?
+
+can to_one_hot load data into a tensor directly?
+
+do all at once
+
+does GPU help?  it was quite a bit faster when the dataset was all in-memory.  
+unable to use Cuda with MMEpdDataSet in its current form, because mmap.mmap cannot
+be "pickled."  Potential solutions:
+- use file based mmap - https://mmappickle.readthedocs.io/en/latest/
+- split the input file into separate files containing one batch of records.  use
+  a naming convention where the file name can be derived by an index.
+  in the init, determine the number of files.  in getitem, read the file 
+  by index.  
+
+
+is the model optimal to approximate the eval function?
+
+quantize for faster inference
+
+
+approximate depth 1 search
+
+add data:
+* random openings
+* FRC
+
+NNUE for faster translation
+
+
