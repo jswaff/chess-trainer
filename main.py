@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,6 +5,7 @@ import torch.optim as optim
 from config import CFG
 from data import build_data_loaders
 from train import train
+from visualize import plot_learning_curves
 
 
 def main():
@@ -15,14 +14,7 @@ def main():
 
     train_dl, test_dl, valid_dl = build_data_loaders()
 
-    # define the model
-    model = nn.Sequential(
-        nn.Linear(CFG.num_features, 2048),
-        nn.ReLU(),
-        nn.Linear(2048, 64),
-        nn.ReLU(),
-        nn.Linear(64, 1)
-    ).to(CFG.device)
+    model = CFG.model
 
     # loss function and optimizer
     loss_fn = nn.MSELoss()
@@ -53,13 +45,7 @@ def main():
 
     # visualize learning curves
     if CFG.show_plots:
-        x_arr = np.arange(len(hist[2])) + 1
-        fig = plt.figure(figsize=(12, 4))
-        ax = fig.add_subplot(1, 2, 1)
-        ax.plot(x_arr, hist[2], '-o', label='Train loss')
-        ax.plot(x_arr, hist[3], '--<', label='Validation loss')
-        ax.legend(fontsize=15)
-        plt.show()
+        plot_learning_curves(hist[2], hist[3])
 
 
 if __name__ == "__main__":

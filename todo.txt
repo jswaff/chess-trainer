@@ -1,11 +1,3 @@
-show graph/metrics from saved model - do torch.load and ref dictionary:
-   - epoch
-   - model_state_dict
-   - optimizer_state_dict
-   - loss
-   - loss_hist_train
-   - loss_hist_valid
-
 how to start from pre-trained data? - stop one early and resume.
 
 does performance get better with more data?

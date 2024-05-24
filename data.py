@@ -51,8 +51,6 @@ class MMEpdDataSet(Dataset):
 
         Xs = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
         ys = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
-        # Xs = torch.rand([512, 768], dtype=torch.float32)
-        # ys = torch.rand([512, 1], dtype=torch.float32)
 
         return Xs, ys
 
