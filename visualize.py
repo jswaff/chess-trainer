@@ -20,8 +20,8 @@ def plot_learning_curves(loss_hist_train, loss_hist_valid):
 
 
 if __name__ == "__main__":
-    dict = torch.load(CFG.model_name)
-    epochs = dict['epoch']
-    loss_hist_train = dict['loss_hist_train'][0:epochs]
-    loss_hist_valid = dict['loss_hist_valid'][0:epochs]
-    plot_learning_curves(loss_hist_train, loss_hist_valid)
+    data = torch.load(CFG.model_name)
+    e = data['epoch']
+    lht = data['loss_hist_train'][0:e]
+    lhv = data['loss_hist_valid'][0:e]
+    plot_learning_curves(lht, lhv)

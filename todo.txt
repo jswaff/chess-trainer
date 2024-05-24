@@ -1,8 +1,6 @@
-how to start from pre-trained data? - stop one early and resume.
+can to_one_hot load data into a tensor directly?
 
 does performance get better with more data?
-
-can to_one_hot load data into a tensor directly?
 
 do all at once
 

@@ -6,7 +6,8 @@ from model import Model
 class CFG:
     test_name = 'E12.52-1M-D12'
     input_path = 'data/' + test_name + '.csv'
-    model_name = 'models/' + test_name + '.pt'
+    #model_name = 'models/' + test_name + '.pt'
+    model_name = 'models/test.pt'
     num_samples = None
 
     num_features = 768
