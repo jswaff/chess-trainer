@@ -14,7 +14,7 @@ def main():
 
     train_dl, test_dl, valid_dl = build_data_loaders()
 
-    model = CFG.model
+    model = CFG.model.model
 
     # loss function and optimizer
     loss_fn = nn.MSELoss()
@@ -24,7 +24,6 @@ def main():
     torch.manual_seed(1)
     hist = train(model, CFG.num_epochs, train_dl, valid_dl, loss_fn, optimizer)
     print(f'Min validation loss: {hist[0]:.4f}')
-    # print(f'Best validation weights: {hist[1]}')
 
     # measure performance against test set
     loss_test = 0
