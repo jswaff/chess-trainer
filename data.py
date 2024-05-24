@@ -28,8 +28,8 @@ class MMEpdDataSet(Dataset):
         self.f_mmap.seek(self.offsets[idx])
         self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-        Xs = np.ndarray(shape=(self.batch_size, 768))
-        ys = np.ndarray(shape=(self.batch_size, 1))
+        Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
+        ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
 
         lines_read = 0
         for i in range(self.batch_size):
@@ -42,10 +42,10 @@ class MMEpdDataSet(Dataset):
             y, epd = line_str.split(',', 1)
             encode(epd, int(y), Xs, ys, i)
 
-        Xs = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
-        ys = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
+        Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
+        ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
 
-        return Xs, ys
+        return Xs_tensor, ys_tensor
 
 
 def encode(epd, w_score, Xs, ys, idx):

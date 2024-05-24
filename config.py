@@ -8,7 +8,6 @@ class CFG:
     input_path = 'data/' + test_name + '.csv'
     #model_name = 'models/' + test_name + '.pt'
     model_name = 'models/test.pt'
-    num_samples = None
 
     num_features = 768
     batch_size = 512
