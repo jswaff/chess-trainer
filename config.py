@@ -4,10 +4,10 @@ from model import Model
 
 
 class CFG:
-    test_name = 'E12.52-1M-D12'
+    test_name = 'bfd'
     input_path = 'data/' + test_name + '.csv'
     #model_name = 'models/' + test_name + '.pt'
-    model_name = 'models/test.pt'
+    model_name = 'models/hce-768-256-64-1.pt'
 
     num_features = 768
     batch_size = 512

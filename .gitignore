@@ -1,5 +1,7 @@
 .idea/
 __pycache__/
 trainer_env/
+data
+models
 data/*
 models/*
