@@ -1,13 +1,11 @@
-import torch
-
 from model import Model
 
 
 class CFG:
     test_name = 'bfd'
-    input_path = 'data/' + test_name + '.csv'
-    #model_name = 'models/' + test_name + '.pt'
-    model_name = 'models/hce-768-256-64-1.pt'
+    input_path = '/home/james/data/chess/labeled/' + test_name + '.csv'
+    #model_name = '/home/james/data/chess/models/' + test_name + '.pt'
+    model_name = '/home/james/data/chess/models/hce-768-128-1.pt'
 
     num_features = 768
     batch_size = 512
