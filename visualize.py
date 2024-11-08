@@ -20,7 +20,7 @@ def plot_learning_curves(loss_hist_train, loss_hist_valid, model_name = CFG.mode
 
 
 if __name__ == "__main__":
-    model_name = 'models/hce-768-64-1.pt'
+    model_name = '/home/james/data/chess/models/d0-768-8192-1.pt'
     data = torch.load(model_name)
     e = data['epoch']
     lht = data['loss_hist_train'][0:e]
