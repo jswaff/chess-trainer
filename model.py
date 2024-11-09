@@ -8,9 +8,9 @@ class Model:
         self._model = nn.Sequential(
             nn.Linear(num_features, 768),
             nn.ReLU(),
-            nn.Linear(768, 64),
+            nn.Linear(768, 256),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(256, 1)
         ).to(device)
 
         if load_file is not None:

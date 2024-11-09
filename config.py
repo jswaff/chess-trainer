@@ -3,9 +3,9 @@ from model import Model
 
 
 class CFG:
-    test_name = 'bfd-d2-1'
+    test_name = 'bfd-d0'
     input_path = '/home/james/data/chess/labeled/' + test_name + '.csv'
-    model_name = '/home/james/data/chess/models/d2_1-768-64-1.pt'
+    model_name = '/home/james/data/chess/models/d0-768-256-1.pt'
 
     num_features = 768
     batch_size = 1024

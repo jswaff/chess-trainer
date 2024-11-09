@@ -48,7 +48,7 @@ class MMEpdDataSet(Dataset):
         return Xs_tensor, ys_tensor
 
 
-def encode(epd, w_score, Xs, ys, idx):
+def encode(epd, score, Xs, ys, idx):
     epd_parts = epd.split(" ")
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
@@ -89,10 +89,11 @@ def encode(epd, w_score, Xs, ys, idx):
     if sq != 64:
         raise Exception(f'invalid square count {sq}')
 
+    # label is score from white's perspective
     if ptm == 'w':
-        ys[idx][0] = w_score
+        ys[idx][0] = score
     elif ptm == 'b':
-        ys[idx][0] = -w_score
+        ys[idx][0] = -score
     else:
         raise Exception(f'invalid ptm {ptm}')
 
