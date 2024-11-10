@@ -6,7 +6,7 @@ import torch
 from config import CFG
 
 
-def plot_learning_curves(loss_hist_train, loss_hist_valid, model_name = CFG.model_name):
+def plot_learning_curves(loss_hist_train, loss_hist_valid, model_name = CFG.output_model_name):
     epochs = len(loss_hist_train)
     x_arr = np.arange(len(loss_hist_train)) + 1
     fig = plt.figure(figsize=(12, 4))

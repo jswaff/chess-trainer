@@ -9,8 +9,9 @@ from visualize import plot_learning_curves
 
 
 def main():
-    # torch.multiprocessing.set_start_method('spawn')
     print("device: ", CFG.device)
+    print("input model: ", CFG.input_model_name)
+    print("output model: ", CFG.output_model_name)
 
     train_dl, test_dl, valid_dl = build_data_loaders()
 
@@ -19,7 +20,6 @@ def main():
     # loss function and optimizer
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
-    #optimizer = optim.Adagrad(model.parameters(), lr=CFG.lr)
 
     # train
     torch.manual_seed(1)
@@ -37,8 +37,10 @@ def main():
         loss_test += loss.item()
         if not traced:
             model.load_state_dict(hist[1])
-            traced_script_module = torch.jit.trace(model, x_batch)
-            traced_script_module.save(CFG.model_name.replace(".pt", "-ts.pt"))
+            model.to("cpu")
+            traced_script_module = torch.jit.trace(model, x_batch.to("cpu"))
+            traced_script_module.save(CFG.output_model_name.replace(".pt", "-ts.pt"))
+            model.to(CFG.device)
             traced = True
     loss_test /= len(test_dl)
     print(f'Test loss: {loss_test:.4f}')

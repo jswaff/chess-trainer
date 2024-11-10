@@ -1,4 +1,7 @@
+import gzip
 import mmap
+import os.path
+import pickle
 
 import numpy as np
 import torch
@@ -25,27 +28,46 @@ class MMEpdDataSet(Dataset):
         return len(self.offsets)
 
     def __getitem__(self, idx):
-        self.f_mmap.seek(self.offsets[idx])
-        self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-        Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-        ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
+        encoded_batch_file = 'data/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
-        lines_read = 0
-        for i in range(self.batch_size):
-            line = self.f_mmap.readline()
-            if line:
-                line_str = line.decode("utf-8")
-                lines_read = lines_read + 1
-            else:
-                break
-            y, epd = line_str.split(',', 1)
-            encode(epd, int(y), Xs, ys, i)
+        if False: #os.path.exists(encoded_batch_file):
+            (Xs_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
+        else:
+            self.f_mmap.seek(self.offsets[idx])
+            self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-        Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
-        ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
+            Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
+            ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
+
+            lines_read = 0
+            for i in range(self.batch_size):
+                line = self.f_mmap.readline()
+                if line:
+                    line_str = line.decode("utf-8")
+                    lines_read = lines_read + 1
+                else:
+                    break
+                y, epd = line_str.split(',', 1)
+                encode(epd, int(y), Xs, ys, i)
+
+            Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
+            ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
+
+            # cache for later
+            #save_encoded_batch(encoded_batch_file, Xs_tensor, ys_tensor)
 
         return Xs_tensor, ys_tensor
+
+def load_encoded_batch(fname):
+    with gzip.GzipFile(fname, 'rb') as file:
+        (Xs,ys) = pickle.load(file)
+        return Xs,ys
+
+def save_encoded_batch(fname, Xs, ys):
+    os.makedirs(os.path.dirname(fname), exist_ok=True)
+    with gzip.GzipFile(fname, 'wb') as file:
+        pickle.dump((Xs,ys), file)
 
 
 def encode(epd, score, Xs, ys, idx):
@@ -99,8 +121,8 @@ def encode(epd, score, Xs, ys, idx):
 
 
 def build_data_loaders():
-    print(f'input_path: {CFG.input_path}')
-    dataset = MMEpdDataSet(file_path=CFG.input_path, batch_size=CFG.batch_size)
+    print(f'data_path: {CFG.data_path}')
+    dataset = MMEpdDataSet(file_path=CFG.data_path, batch_size=CFG.batch_size)
     dataset_size = len(dataset)
     print(f'dataset_size: {dataset_size}')
     indices = list(range(dataset_size))

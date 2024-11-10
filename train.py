@@ -53,7 +53,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
                 'loss': min_loss,
                 'loss_hist_train': loss_hist_train[0:epoch],
                 'loss_hist_valid': loss_hist_valid[0:epoch],
-            }, CFG.model_name)
+            }, CFG.output_model_name)
 
         if delta >= 0:
             early_stop_cnt = early_stop_cnt - 1
