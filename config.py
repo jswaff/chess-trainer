@@ -11,7 +11,7 @@ class CFG:
     batch_size = 1024 * 4
     num_workers = 8
     num_epochs = 1000
-    lr = 0.01
+    lr = 0.001
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
