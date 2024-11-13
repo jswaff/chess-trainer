@@ -19,10 +19,11 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
     for epoch in range(num_epochs):
         epoch_start_time = time.time()
         model.train()
-        for x_batch, y_batch in train_dl:
+        for x_batch, x2_batch, y_batch in train_dl:
             x_batch = x_batch.squeeze(0).to(CFG.device)
+            x2_batch = x2_batch.squeeze(0).to(CFG.device)
             y_batch = y_batch.squeeze(0).to(CFG.device)
-            pred = model(x_batch)
+            pred = model(x_batch, x2_batch)
             loss = loss_fn(pred, y_batch)
             optimizer.zero_grad()
             loss.backward()
@@ -33,10 +34,11 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
         # evaluate accuracy at end of each epoch
         model.eval()
         with torch.no_grad():
-            for x_batch, y_batch in valid_dl:
+            for x_batch, x2_batch, y_batch in valid_dl:
                 x_batch = x_batch.squeeze(0).to(CFG.device)
+                x2_batch = x2_batch.squeeze(0).to(CFG.device)
                 y_batch = y_batch.squeeze(0).to(CFG.device)
-                pred = model(x_batch)
+                pred = model(x_batch, x2_batch)
                 loss = loss_fn(pred, y_batch)
                 loss_hist_valid[epoch] += loss.item()
             loss_hist_valid[epoch] /= len(valid_dl)

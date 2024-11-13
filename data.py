@@ -32,12 +32,13 @@ class MMEpdDataSet(Dataset):
         encoded_batch_file = 'data/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
         if os.path.exists(encoded_batch_file):
-            (Xs_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
+            (Xs_tensor, Xs2_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
         else:
             self.f_mmap.seek(self.offsets[idx])
             self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
             Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
+            Xs2 = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
             ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
 
             lines_read = 0
@@ -49,65 +50,65 @@ class MMEpdDataSet(Dataset):
                 else:
                     break
                 y, epd = line_str.split(',', 1)
-                encode(epd, int(y), Xs, ys, i)
+                encode(epd, int(y), Xs, Xs2, ys, i)
 
             Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
+            Xs2_tensor = torch.tensor(Xs2[:lines_read, :], dtype=torch.float32)
             ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
 
             # cache for later
-            save_encoded_batch(encoded_batch_file, Xs_tensor, ys_tensor)
+            save_encoded_batch(encoded_batch_file, Xs_tensor, Xs2_tensor, ys_tensor)
 
-        return Xs_tensor, ys_tensor
+        return Xs_tensor, Xs2_tensor, ys_tensor
 
 def load_encoded_batch(fname):
     with gzip.GzipFile(fname, 'rb') as file:
-        (Xs,ys) = pickle.load(file)
-        return Xs,ys
+        (Xs,Xs2,ys) = pickle.load(file)
+        return Xs,Xs2,ys
 
-def save_encoded_batch(fname, Xs, ys):
+def save_encoded_batch(fname, Xs, Xs2, ys):
     os.makedirs(os.path.dirname(fname), exist_ok=True)
     with gzip.GzipFile(fname, 'wb') as file:
-        pickle.dump((Xs,ys), file)
+        pickle.dump((Xs,Xs2,ys), file)
 
-
-def encode(epd, score, Xs, ys, idx):
+# Xs : one hot representation of position in epd
+# Xs2 : one hot representation of the position in epd flipped (a white rook on A1 is now a black rook on A8)
+# ys : score (label) of epd, from white's perspective
+def encode(epd, score, Xs, Xs2, ys, idx):
     epd_parts = epd.split(" ")
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
 
+    offsets = {
+        'R' :   0,
+        'r' :  64,
+        'N' : 128,
+        'n' : 192,
+        'B' : 256,
+        'b' : 320,
+        'Q' : 384,
+        'q' : 448,
+        'K' : 512,
+        'k' : 576,
+        'P' : 640,
+        'p' : 704
+    }
+
     sq = 0
-    for r, rank in enumerate(ranks):
+    for rank_ind, rank in enumerate(ranks):
+        col_ind = 0
         for ch in rank:
             if '1' <= ch <= '8':
+                col_ind += int(ch)
                 sq += int(ch)
-            else:
-                if ch == 'R':
-                    Xs[idx][sq] = 1
-                elif ch == 'r':
-                    Xs[idx][64 + sq] = 1
-                elif ch == 'N':
-                    Xs[idx][128 + sq] = 1
-                elif ch == 'n':
-                    Xs[idx][192 + sq] = 1
-                elif ch == 'B':
-                    Xs[idx][256 + sq] = 1
-                elif ch == 'b':
-                    Xs[idx][320 + sq] = 1
-                elif ch == 'Q':
-                    Xs[idx][384 + sq] = 1
-                elif ch == 'q':
-                    Xs[idx][448 + sq] = 1
-                elif ch == 'K':
-                    Xs[idx][512 + sq] = 1
-                elif ch == 'k':
-                    Xs[idx][576 + sq] = 1
-                elif ch == 'P':
-                    Xs[idx][640 + sq] = 1
-                elif ch == 'p':
-                    Xs[idx][704 + sq] = 1
-                else:
-                    raise Exception(f'invalid FEN character {ch}')
+            elif ch in offsets.keys():
+                Xs[idx][offsets[ch] + sq] = 1
+                flipped_sq = abs(7-rank_ind)*8 + col_ind
+                Xs2[idx][offsets[ch.swapcase()] + flipped_sq] = 1
+                col_ind += 1
                 sq += 1
+            else:
+                raise Exception(f'invalid FEN character {ch}')
     if sq != 64:
         raise Exception(f'invalid square count {sq}')
 

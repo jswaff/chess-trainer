@@ -2,11 +2,12 @@ import torch
 
 class Model(torch.nn.Module):
 
-    def __init__(self, num_features, load_file=None):
+    def __init__(self, load_file=None):
         super(Model, self).__init__()
 
-        self.fc1 = torch.nn.Linear(num_features, 768)
-        self.fc2 = torch.nn.Linear(768, 256)
+        N_L1_OUT = 256
+        self.fc1 = torch.nn.Linear(768, N_L1_OUT)
+        self.fc2 = torch.nn.Linear(N_L1_OUT*2, 256)
         self.fc3 = torch.nn.Linear(256, 1)
         self.relu = torch.nn.functional.relu
 
@@ -17,12 +18,12 @@ class Model(torch.nn.Module):
             self.load_state_dict(data['model_state_dict'])
 
 
-    def forward(self, X):
-        X = self.fc1(X)
+    def forward(self, X1, X2):
+        X1 = self.fc1(X1)
+        X2 = self.fc1(X2)
+        X = torch.cat((X1, X2), 1)
         X = self.relu(X)
-        #torch.clamp(X, 0, 1)
         X = self.fc2(X)
         X = self.relu(X)
-        #torch.clamp(X, 0, 1)
         X = self.fc3(X)
         return X
