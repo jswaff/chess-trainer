@@ -12,7 +12,8 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
     min_loss = np.inf
     best_weights = copy.deepcopy(model.state_dict())
     training_start_time = time.time()
-    early_stop_cnt = 5
+    orig_early_stop_cnt = 5
+    early_stop_cnt = orig_early_stop_cnt
     print('Epoch        Train        Valid        ETime        TTime        Delta        ESCnt')
     print('-----------------------------------------------------------------------------------')
     for epoch in range(num_epochs):
@@ -57,6 +58,8 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
 
         if delta >= 0:
             early_stop_cnt = early_stop_cnt - 1
+        else:
+            early_stop_cnt = orig_early_stop_cnt
 
         print(f'{epoch + 1:>5}',
               f'{loss_hist_train[epoch]:>12.4f}',

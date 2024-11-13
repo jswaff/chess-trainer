@@ -31,7 +31,7 @@ class MMEpdDataSet(Dataset):
 
         encoded_batch_file = 'data/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
-        if False: #os.path.exists(encoded_batch_file):
+        if os.path.exists(encoded_batch_file):
             (Xs_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
         else:
             self.f_mmap.seek(self.offsets[idx])
@@ -55,7 +55,7 @@ class MMEpdDataSet(Dataset):
             ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
 
             # cache for later
-            #save_encoded_batch(encoded_batch_file, Xs_tensor, ys_tensor)
+            save_encoded_batch(encoded_batch_file, Xs_tensor, ys_tensor)
 
         return Xs_tensor, ys_tensor
 
