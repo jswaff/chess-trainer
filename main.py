@@ -15,7 +15,7 @@ def main():
 
     train_dl, test_dl, valid_dl = build_data_loaders()
 
-    model = CFG.model.model
+    model = CFG.model.to(CFG.device)
 
     # loss function and optimizer
     loss_fn = nn.MSELoss()
