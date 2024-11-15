@@ -5,10 +5,9 @@ class Model(torch.nn.Module):
     def __init__(self, load_file=None):
         super(Model, self).__init__()
 
-        N_L1_OUT = 256
+        N_L1_OUT = 1536
         self.fc1 = torch.nn.Linear(768, N_L1_OUT)
-        self.fc2 = torch.nn.Linear(N_L1_OUT*2, 256)
-        self.fc3 = torch.nn.Linear(256, 1)
+        self.fc2 = torch.nn.Linear(N_L1_OUT*2, 1)
         self.relu = torch.nn.functional.relu
 
         if load_file is not None:
@@ -24,6 +23,4 @@ class Model(torch.nn.Module):
         X = torch.cat((X1, X2), 1)
         X = self.relu(X)
         X = self.fc2(X)
-        X = self.relu(X)
-        X = self.fc3(X)
         return X

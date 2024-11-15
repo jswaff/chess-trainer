@@ -19,7 +19,8 @@ def main():
 
     # loss function and optimizer
     loss_fn = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
+    #optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
+    optimizer = optim.Adagrad(model.parameters(), lr=CFG.lr)
 
     # train
     torch.manual_seed(1)
@@ -39,7 +40,7 @@ def main():
         if not traced:
             model.load_state_dict(hist[1])
             model.to("cpu")
-            traced_script_module = torch.jit.trace(model, x_batch.to("cpu"))
+            traced_script_module = torch.jit.trace(model, (x_batch.to("cpu"), x2_batch.to("cpu")))
             traced_script_module.save(CFG.output_model_name.replace(".pt", "-ts.pt"))
             model.to(CFG.device)
             traced = True

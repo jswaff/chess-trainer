@@ -120,6 +120,8 @@ def encode(epd, score, Xs, Xs2, ys, idx):
     else:
         raise Exception(f'invalid ptm {ptm}')
 
+    assert(2 <= np.count_nonzero(Xs[idx], 0) <= 32)
+    assert(2 <= np.count_nonzero(Xs2[idx], 0) <= 32)
 
 def build_data_loaders():
     print(f'data_path: {CFG.data_path}')
