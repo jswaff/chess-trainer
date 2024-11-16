@@ -3,11 +3,9 @@ from model import Model
 
 
 class CFG:
-    data_path = '/home/james/data/chess/labeled/positions_plus_ccrl-d1.csv'
-    #data_path = '/home/james/data/chess/labeled/positions-hce.csv'
-    input_model_name = '/home/james/data/chess/models/positions_plus_ccrl-d1.pt'
-    output_model_name = '/home/james/data/chess/models/positions_plus_ccrl-d1.pt'
-    #output_model_name = '/home/james/data/chess/models/positions-hce.pt'
+    data_path = '/home/james/data/chess/labeled/all-d1.csv'
+    input_model_name = None
+    output_model_name = '/home/james/data/chess/models/all-d1.pt'
 
     batch_size = 1024 * 32
     num_workers = 8
