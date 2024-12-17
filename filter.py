@@ -1,4 +1,4 @@
-import os
+# utility script to filter out mate scores
 
 ifile = "/home/james/data/chess/labeled/positions-hce.csv"
 ofile = "/home/james/data/chess/labeled/positions-hce-filtered.csv"

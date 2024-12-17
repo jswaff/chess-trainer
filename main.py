@@ -3,10 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 
 from config import CFG
-from data import build_data_loaders, save_model
+from data import build_data_loaders
 from train import train
 from visualize import plot_learning_curves
-
 
 def main():
     print("device: ", CFG.device)
@@ -18,17 +17,18 @@ def main():
     model = CFG.model.to(CFG.device)
 
     # loss function and optimizer
-    #loss_fn = nn.MSELoss()
-    loss_fn = nn.L1Loss()
+    loss_fn = nn.MSELoss()
+    #loss_fn = nn.L1Loss()
     optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
     #optimizer = optim.Adagrad(model.parameters(), lr=CFG.lr)
 
     # train
     torch.manual_seed(1)
-    hist = train(model, CFG.num_epochs, train_dl, valid_dl, loss_fn, optimizer)
-    print(f'Min validation loss: {hist[0]:.4f}')
+    min_loss, best_weights, loss_hist_train, loss_hist_valid = train(model, CFG.num_epochs, train_dl, valid_dl, loss_fn, optimizer)
+    print(f'Min validation loss: {min_loss:.4f}')
 
     # measure performance against test set
+    model.load_state_dict(best_weights)
     loss_test = 0
     traced = False
     for x_batch, x2_batch, y_batch in test_dl:
@@ -38,8 +38,8 @@ def main():
         pred = model(x_batch, x2_batch)
         loss = loss_fn(pred, y_batch)
         loss_test += loss.item()
+        # trace model and save in torch script format
         if not traced:
-            model.load_state_dict(hist[1])
             model.to("cpu")
             traced_script_module = torch.jit.trace(model, (x_batch.to("cpu"), x2_batch.to("cpu")))
             traced_script_module.save(CFG.output_model_name.replace(".pt", "-ts.pt"))
@@ -50,7 +50,7 @@ def main():
 
     # visualize learning curves
     if CFG.show_plots:
-        plot_learning_curves(hist[2], hist[3])
+        plot_learning_curves(loss_hist_train, loss_hist_valid)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
-import os
+# utility script to convert CSV into Cerebrum format
 
+ifile = "/home/james/data/chess/labeled/all-d1.csv"
+ofile = "/home/james/data/chess/labeled/positions-hce-filtered.csv"
 
-with open("/home/james/data/chess/labeled/all-d1.csv", "r") as infile, open("positions-d1.txt", "w") as outfile:
+with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     for line in infile:
         #print(line.rstrip("\n"))
         [score, rest] = line.split(',')
@@ -20,4 +22,3 @@ with open("/home/james/data/chess/labeled/all-d1.csv", "r") as infile, open("pos
         outline = epd[0] + ';' + str(wscore) + ';' + str(-1*wscore) + '\n'
         #print('\toutline: ', outline)
         outfile.write(outline)
-
