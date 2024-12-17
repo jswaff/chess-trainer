@@ -50,7 +50,7 @@ class MMEpdDataSet(Dataset):
                 else:
                     break
                 y, epd = line_str.split(',', 1)
-                encode(epd, int(y), Xs, Xs2, ys, i)
+                encode(epd, float(y), Xs, Xs2, ys, i)
 
             Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
             Xs2_tensor = torch.tensor(Xs2[:lines_read, :], dtype=torch.float32)
@@ -114,9 +114,9 @@ def encode(epd, score, Xs, Xs2, ys, idx):
 
     # label is score from white's perspective
     if ptm == 'w':
-        ys[idx][0] = score
+        ys[idx][0] = score / 100.0
     elif ptm == 'b':
-        ys[idx][0] = -score
+        ys[idx][0] = -score / 100.0
     else:
         raise Exception(f'invalid ptm {ptm}')
 
@@ -146,3 +146,18 @@ def build_data_loaders():
     valid_dl = DataLoader(dataset=dataset, sampler=valid_sampler, num_workers=CFG.num_workers, pin_memory=True)
 
     return train_dl, test_dl, valid_dl
+
+def torch_get_weights(tensor_row):
+    return "\n".join([str(tensor.item()) for tensor in tensor_row]) + "\n"
+
+def save_model(model, filename):
+    with open(filename, "w") as file:
+        for parameter in model.parameters():
+            if parameter.dim() == 1:
+                row = parameter.data
+                file.write(torch_get_weights(row))
+            elif parameter.dim() == 2:
+                for row in parameter.data:
+                    file.write(torch_get_weights(row))
+            else:
+                assert (0)

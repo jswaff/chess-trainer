@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 from config import CFG
+from data import save_model
 
 
 def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
@@ -57,6 +58,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
                 'loss_hist_train': loss_hist_train[0:epoch],
                 'loss_hist_valid': loss_hist_valid[0:epoch],
             }, CFG.output_model_name)
+            save_model(model, CFG.output_model_name.replace(".pt", ".txt"))
 
         if delta >= 0:
             early_stop_cnt = early_stop_cnt - 1
@@ -79,3 +81,4 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
 
     print('Total training time: {:.2f}m'.format((time.time() - training_start_time) / 60))
     return min_loss, best_weights, loss_hist_train, loss_hist_valid
+

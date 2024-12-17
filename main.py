@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from config import CFG
-from data import build_data_loaders
+from data import build_data_loaders, save_model
 from train import train
 from visualize import plot_learning_curves
 
@@ -18,7 +18,8 @@ def main():
     model = CFG.model.to(CFG.device)
 
     # loss function and optimizer
-    loss_fn = nn.MSELoss()
+    #loss_fn = nn.MSELoss()
+    loss_fn = nn.L1Loss()
     optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
     #optimizer = optim.Adagrad(model.parameters(), lr=CFG.lr)
 
