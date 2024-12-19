@@ -3,9 +3,9 @@ from model import Model
 
 
 class CFG:
-    data_path = '/home/james/data/chess/labeled/all-d1-filtered.csv'
+    data_path = '/home/james/data/chess/labeled/test.csv'
     input_model_name = None #'/home/james/data/chess/models/all-d1.pt'
-    output_model_name = '/home/james/data/chess/models/all-d1.pt'
+    output_model_name = '/home/james/data/chess/models/test.pt'
 
     batch_size = 1024
     num_workers = 8

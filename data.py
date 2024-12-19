@@ -24,6 +24,7 @@ class MMEpdDataSet(Dataset):
                 if idx % batch_size == 0:
                     self.offsets.append(self.f_mmap.tell())  # where *next* line would start
 
+        self.offsets.pop() # no partial batches
     def __len__(self):
         return len(self.offsets)
 
