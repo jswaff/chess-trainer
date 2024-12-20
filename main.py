@@ -18,9 +18,7 @@ def main():
 
     # loss function and optimizer
     loss_fn = nn.MSELoss()
-    #loss_fn = nn.L1Loss()
-    optimizer = optim.Adam(model.parameters(), lr=CFG.lr)
-    #optimizer = optim.Adagrad(model.parameters(), lr=CFG.lr)
+    optimizer = optim.Adam(model.parameters(), lr=CFG.lr, weight_decay=1e-4)
 
     # train
     torch.manual_seed(1)

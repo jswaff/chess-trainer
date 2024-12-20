@@ -9,7 +9,7 @@ Randomize order of positions
 
 sort -R infile > outfile
 -OR-
-shuf
+shuf infile > outfile  (note this reads everything into memory)
 
 Initialize score
 cat infile  | awk '$0="0,"$0' > outfile
