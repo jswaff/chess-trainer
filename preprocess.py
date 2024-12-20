@@ -1,16 +1,17 @@
 # utility script for preprocessing
 
-ifile = "/home/james/data/chess/labeled/all-d0.csv"
-ofile = "/home/james/data/chess/labeled/all-d0-filtered.csv"
+ifile = "/home/james/data/chess/lichess/test2.csv"
+ofile = "/home/james/data/chess/lichess/test2-labeled.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     for line in infile:
         [score, rest] = line.split(',')
         iscore = int(score)
-        # clamp at +/- 10 pawns
-        if iscore < -1000:
-            iscore = -1000
-        elif iscore > 1000:
-            iscore = 1000
-        outline = str(iscore) + ',' + rest
-        outfile.write(outline)
+        if abs(iscore) < 32000: # omit mates
+            # clamp at +/- 15 pawns
+            if iscore < -1500:
+                iscore = -1500
+            elif iscore > 1500:
+                iscore = 1500
+            outline = str(iscore) + ',' + rest
+            outfile.write(outline)

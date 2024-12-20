@@ -1,0 +1,27 @@
+Extract 10% of positions in FEN format from PGN:
+
+pgn-extract -Wfen <pgnfile> --notags -s | grep "\S"  | awk 'NR % 10 == 0' > <fenfile>
+
+Remove duplicates
+time sort -u infile > outfile
+
+Randomize order of positions
+
+sort -R infile > outfile
+-OR-
+shuf
+
+Initialize score
+cat infile  | awk '$0="0,"$0' > outfile
+
+
+Split data 
+split --number=l/4 infile prefix
+
+
+Label Files
+
+
+java -jar chess4j-6.0-uber.jar -mode label -depth 2 -csv infile -out outfile
+
+
