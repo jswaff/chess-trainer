@@ -30,7 +30,7 @@ class MMEpdDataSet(Dataset):
 
     def __getitem__(self, idx):
 
-        encoded_batch_file = 'data/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
+        encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
         if os.path.exists(encoded_batch_file):
             (Xs_tensor, Xs2_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
@@ -113,11 +113,15 @@ def encode(epd, score, Xs, Xs2, ys, idx):
     if sq != 64:
         raise Exception(f'invalid square count {sq}')
 
+    # convert score from centi-pawns to range [-1,1]
+    score = score / 100.0
+    score = np.tanh(score/2) # by half to stretch the curve
+
     # label is score from white's perspective
     if ptm == 'w':
-        ys[idx][0] = score / 100.0
+        ys[idx][0] = score
     elif ptm == 'b':
-        ys[idx][0] = -score / 100.0
+        ys[idx][0] = -score
     else:
         raise Exception(f'invalid ptm {ptm}')
 
