@@ -2,6 +2,7 @@ import gzip
 import mmap
 import os.path
 import pickle
+import shutil
 
 import numpy as np
 import torch
@@ -113,9 +114,8 @@ def encode(epd, score, Xs, Xs2, ys, idx):
     if sq != 64:
         raise Exception(f'invalid square count {sq}')
 
-    # convert score from centi-pawns to range [-1,1]
-    score = score / 100.0
-    score = np.tanh(score/2) # by half to stretch the curve
+    score = score / 100.0 # centi-pawns to pawns
+    #score = np.tanh(score/2) # by half to stretch the curve
 
     # label is score from white's perspective
     if ptm == 'w':
@@ -166,3 +166,14 @@ def save_model(model, filename):
                     file.write(torch_get_weights(row))
             else:
                 assert (0)
+
+def clear_cache_dir():
+    for filename in os.listdir('cache'):
+        file_path = os.path.join('cache', filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))

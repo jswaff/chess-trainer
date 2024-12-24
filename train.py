@@ -60,7 +60,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             }, CFG.output_model_name)
             save_model(model, CFG.output_model_name.replace(".pt", ".txt"))
 
-        if delta >= -0.001:
+        if delta >= -CFG.early_stop_threshold:
             early_stop_cnt = early_stop_cnt - 1
         else:
             early_stop_cnt = orig_early_stop_cnt

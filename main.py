@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from config import CFG
-from data import build_data_loaders
+from data import build_data_loaders, clear_cache_dir
 from train import train
 from visualize import plot_learning_curves
 
@@ -11,6 +11,10 @@ def main():
     print("device: ", CFG.device)
     print("input model: ", CFG.input_model_name)
     print("output model: ", CFG.output_model_name)
+
+    if CFG.clear_cache:
+        print("clearing cache.")
+        clear_cache_dir()
 
     train_dl, test_dl, valid_dl = build_data_loaders()
 
