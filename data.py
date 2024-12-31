@@ -22,7 +22,7 @@ class MMEpdDataSet(Dataset):
             self.f_mmap = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
             self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
             for idx, _ in enumerate(iter(self.f_mmap.readline, b""), start=1):
-                if idx % batch_size == 0:
+                if idx % batch_size == 0:   # // 2
                     self.offsets.append(self.f_mmap.tell())  # where *next* line would start
 
         self.offsets.pop() # no partial batches
@@ -44,7 +44,7 @@ class MMEpdDataSet(Dataset):
             ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
 
             lines_read = 0
-            for i in range(self.batch_size):
+            for i in range(self.batch_size):   # //2
                 line = self.f_mmap.readline()
                 if line:
                     line_str = line.decode("utf-8")
@@ -52,11 +52,11 @@ class MMEpdDataSet(Dataset):
                 else:
                     break
                 y, epd = line_str.split(',', 1)
-                encode(epd, float(y), Xs, Xs2, ys, i)
+                encode(epd, float(y), Xs, Xs2, ys, i)   # * 2
 
-            Xs_tensor = torch.tensor(Xs[:lines_read, :], dtype=torch.float32)
-            Xs2_tensor = torch.tensor(Xs2[:lines_read, :], dtype=torch.float32)
-            ys_tensor = torch.tensor(ys[:lines_read, :], dtype=torch.float32)
+            Xs_tensor = torch.tensor(Xs, dtype=torch.float32)
+            Xs2_tensor = torch.tensor(Xs2, dtype=torch.float32)
+            ys_tensor = torch.tensor(ys, dtype=torch.float32)
 
             # cache for later
             save_encoded_batch(encoded_batch_file, Xs_tensor, Xs2_tensor, ys_tensor)
@@ -104,9 +104,13 @@ def encode(epd, score, Xs, Xs2, ys, idx):
                 col_ind += int(ch)
                 sq += int(ch)
             elif ch in offsets.keys():
-                Xs[idx][offsets[ch] + sq] = 1
+                player_offset = offsets[ch]
+                opp_offset = offsets[ch.swapcase()]
                 flipped_sq = abs(7-rank_ind)*8 + col_ind
-                Xs2[idx][offsets[ch.swapcase()] + flipped_sq] = 1
+                Xs[idx][player_offset + sq] = 1
+                Xs2[idx][opp_offset + flipped_sq] = 1
+                ## Xs[idx+1][opp_offset + sq] = 1
+                ## Xs2[idx+1][player_offset + flipped_sq] = 1
                 col_ind += 1
                 sq += 1
             else:
@@ -120,8 +124,10 @@ def encode(epd, score, Xs, Xs2, ys, idx):
     # label is score from white's perspective
     if ptm == 'w':
         ys[idx][0] = score
+        #ys[idx+1][0] = -score
     elif ptm == 'b':
         ys[idx][0] = -score
+        #ys[idx+1][0] = score
     else:
         raise Exception(f'invalid ptm {ptm}')
 

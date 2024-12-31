@@ -13,7 +13,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
     min_loss = np.inf
     best_weights = copy.deepcopy(model.state_dict())
     training_start_time = time.time()
-    orig_early_stop_cnt = 5
+    orig_early_stop_cnt = CFG.early_stop_counter
     early_stop_cnt = orig_early_stop_cnt
     print('Epoch        Train        Valid        ETime        TTime        Delta        ESCnt')
     print('-----------------------------------------------------------------------------------')
