@@ -12,6 +12,5 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
             wscore = -wscore
         elif 'w' != epd[1]:
             raise Exception("unknown ptm!")
-        if abs(wscore) < 32000:
-            outline = epd[0] + ';' + str(wscore) + ';' + str(-wscore) + '\n'
-            outfile.write(outline)
+        outline = epd[0] + ';' + str(wscore) + ';' + str(-wscore) + '\n'
+        outfile.write(outline)

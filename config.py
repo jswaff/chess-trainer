@@ -3,9 +3,9 @@ from model import Model
 
 
 class CFG:
-    data_path = 'data/labeled/positions-d2.csv'
+    data_path = 'data/labeled/positions-d3.csv'
     input_model_name = None
-    output_model_name = 'models/nn-d2-lr.pt'
+    output_model_name = 'models/nn-d3.pt'
 
     batch_size = 1024 * 32
     num_workers = 8
@@ -18,5 +18,5 @@ class CFG:
 
     model = Model(input_model_name)
 
-    clear_cache = False
+    clear_cache = True
     show_plots = True
