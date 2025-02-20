@@ -1,6 +1,6 @@
 # utility script to convert CSV into Cerebrum format
 
-ifile = "/home/james/data/chess/labeled/positions.csv"
+ifile = "/home/james/data/chess/labeled/positions-hce.csv"
 ofile = "/home/james/data/chess/labeled/positions-cerebrum.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:

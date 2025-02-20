@@ -23,5 +23,5 @@ Label Files
 
 
 java -jar chess4j-6.0-uber.jar -mode label -depth 2 -csv infile -out outfile
-
+java -jar chess4j-6.0-uber.jar -native -mode label -depth 4 -csv lichess-201904ab -out lichess-201904ab-d4.csv
 
