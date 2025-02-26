@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 import torch.multiprocessing
 from config import CFG
+from quantize import quantize, compute_scale
 
 
 class MMEpdDataSet(Dataset):
@@ -161,14 +162,18 @@ def build_data_loaders():
 def torch_get_weights(tensor_row):
     return "\n".join([str(tensor.item()) for tensor in tensor_row]) + "\n"
 
-def save_model(model, filename):
+def save_model(model, filename, use_quantization=False):
+    q_scale = compute_scale()
+    if use_quantization:
+        print("quantizing with scale: ", q_scale)
     with open(filename, "w") as file:
         for parameter in model.parameters():
             if parameter.dim() == 1:
-                row = parameter.data
+                row = quantize(parameter.data, q_scale) if use_quantization else parameter.data
                 file.write(torch_get_weights(row))
             elif parameter.dim() == 2:
-                for row in parameter.data:
+                params = quantize(parameter.data, q_scale) if use_quantization else parameter.data
+                for row in params:
                     file.write(torch_get_weights(row))
             else:
                 assert (0)

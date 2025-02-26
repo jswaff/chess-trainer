@@ -4,6 +4,7 @@ import torch.optim as optim
 
 from config import CFG
 from data import build_data_loaders, clear_cache_dir
+from model import Model
 from train import train
 from visualize import plot_learning_curves
 
@@ -18,7 +19,7 @@ def main():
 
     train_dl, test_dl, valid_dl = build_data_loaders()
 
-    model = CFG.model.to(CFG.device)
+    model = Model(CFG.input_model_name).to(CFG.device)
 
     # loss function and optimizer
     loss_fn = nn.MSELoss()

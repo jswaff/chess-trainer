@@ -23,6 +23,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
         for x_batch, x2_batch, y_batch in train_dl:
             x_batch = x_batch.squeeze(0).to(CFG.device)
             x2_batch = x2_batch.squeeze(0).to(CFG.device)
+            y_batch = np.clip(y_batch, -CFG.Q, CFG.Q)
             y_batch = y_batch.squeeze(0).to(CFG.device)
             pred = model(x_batch, x2_batch)
             loss = loss_fn(pred, y_batch)
@@ -38,6 +39,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             for x_batch, x2_batch, y_batch in valid_dl:
                 x_batch = x_batch.squeeze(0).to(CFG.device)
                 x2_batch = x2_batch.squeeze(0).to(CFG.device)
+                y_batch = np.clip(y_batch, -CFG.Q, CFG.Q)
                 y_batch = y_batch.squeeze(0).to(CFG.device)
                 pred = model(x_batch, x2_batch)
                 loss = loss_fn(pred, y_batch)
@@ -59,6 +61,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
                 'loss_hist_valid': loss_hist_valid[0:epoch],
             }, CFG.output_model_name)
             save_model(model, CFG.output_model_name.replace(".pt", ".txt"))
+            save_model(model, CFG.output_model_name.replace(".pt", "-q.txt"), True)
 
         if delta >= -CFG.early_stop_threshold:
             early_stop_cnt = early_stop_cnt - 1

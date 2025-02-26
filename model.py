@@ -1,4 +1,5 @@
 import torch
+from config import CFG
 
 NN_SIZE_L1 = 1536
 NN_SIZE_L2 = 1
@@ -23,9 +24,9 @@ class Model(torch.nn.Module):
         X2 = self.fc1(X2)
         X = torch.cat((X1, X2), axis=1)
 
-        X = torch.clamp(X, min=0.0, max=1.0)  #.square()
+        X = torch.clamp(X, min=0.0, max=CFG.Q)
 
         X = self.fc2(X)
-
+        X = torch.clamp(X, min=-CFG.Q, max=CFG.Q)
 
         return X
