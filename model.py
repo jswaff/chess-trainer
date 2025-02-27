@@ -27,6 +27,5 @@ class Model(torch.nn.Module):
         X = torch.clamp(X, min=0.0, max=CFG.Q)
 
         X = self.fc2(X)
-        X = torch.clamp(X, min=-CFG.Q, max=CFG.Q)
 
         return X

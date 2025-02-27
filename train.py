@@ -23,7 +23,6 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
         for x_batch, x2_batch, y_batch in train_dl:
             x_batch = x_batch.squeeze(0).to(CFG.device)
             x2_batch = x2_batch.squeeze(0).to(CFG.device)
-            y_batch = np.clip(y_batch, -CFG.Q, CFG.Q)
             y_batch = y_batch.squeeze(0).to(CFG.device)
             pred = model(x_batch, x2_batch)
             loss = loss_fn(pred, y_batch)
@@ -31,6 +30,10 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             loss.backward()
             optimizer.step()
             loss_hist_train[epoch] += loss.item()  # this is for an entire batch
+            # clip weights
+            with torch.no_grad():
+                for param in model.parameters():
+                    param.clamp_(-CFG.Q, CFG.Q)
         loss_hist_train[epoch] /= len(train_dl)
 
         # evaluate accuracy at end of each epoch
@@ -39,7 +42,6 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             for x_batch, x2_batch, y_batch in valid_dl:
                 x_batch = x_batch.squeeze(0).to(CFG.device)
                 x2_batch = x2_batch.squeeze(0).to(CFG.device)
-                y_batch = np.clip(y_batch, -CFG.Q, CFG.Q)
                 y_batch = y_batch.squeeze(0).to(CFG.device)
                 pred = model(x_batch, x2_batch)
                 loss = loss_fn(pred, y_batch)
