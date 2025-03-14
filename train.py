@@ -30,6 +30,10 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             loss.backward()
             optimizer.step()
             loss_hist_train[epoch] += loss.item()  # this is for an entire batch
+            # clip weights
+            with torch.no_grad():
+                for param in model.parameters():
+                    param.clamp_(-CFG.Q, CFG.Q)
         loss_hist_train[epoch] /= len(train_dl)
 
         # evaluate accuracy at end of each epoch
@@ -59,6 +63,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
                 'loss_hist_valid': loss_hist_valid[0:epoch],
             }, CFG.output_model_name)
             save_model(model, CFG.output_model_name.replace(".pt", ".txt"))
+            save_model(model, CFG.output_model_name.replace(".pt", "-q.txt"), True)
 
         if delta >= -CFG.early_stop_threshold:
             early_stop_cnt = early_stop_cnt - 1

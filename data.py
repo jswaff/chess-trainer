@@ -6,11 +6,11 @@ import shutil
 
 import numpy as np
 import torch
+import torch.multiprocessing
 
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
-import torch.multiprocessing
 from config import CFG
-
+from quantize import quantize
 
 class MMEpdDataSet(Dataset):
     def __init__(self, file_path, batch_size):
@@ -161,17 +161,18 @@ def build_data_loaders():
 def torch_get_weights(tensor_row):
     return "\n".join([str(tensor.item()) for tensor in tensor_row]) + "\n"
 
-def save_model(model, filename):
+def save_model(model, filename, use_quantization=False):
     with open(filename, "w") as file:
         for parameter in model.parameters():
             if parameter.dim() == 1:
-                row = parameter.data
+                row = quantize(parameter.data, 64) if use_quantization else parameter.data
                 file.write(torch_get_weights(row))
             elif parameter.dim() == 2:
-                for row in parameter.data:
+                params = quantize(parameter.data, 64) if use_quantization else parameter.data
+                for row in params:
                     file.write(torch_get_weights(row))
             else:
-                assert (0)
+                assert 0
 
 def clear_cache_dir():
     for filename in os.listdir('cache'):
