@@ -26,6 +26,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             y_batch = y_batch.squeeze(0).to(CFG.device)
             pred = model(x_batch, x2_batch)
             loss = loss_fn(pred, y_batch)
+            # TODO: factor in quantization error
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
