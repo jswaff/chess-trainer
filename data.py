@@ -109,8 +109,6 @@ def encode(epd, score, Xs, Xs2, ys, idx):
                 flipped_sq = abs(7-rank_ind)*8 + col_ind
                 Xs[idx][player_offset + sq] = 1
                 Xs2[idx][opp_offset + flipped_sq] = 1
-                ## Xs[idx+1][opp_offset + sq] = 1
-                ## Xs2[idx+1][player_offset + flipped_sq] = 1
                 col_ind += 1
                 sq += 1
             else:
@@ -119,15 +117,12 @@ def encode(epd, score, Xs, Xs2, ys, idx):
         raise Exception(f'invalid square count {sq}')
 
     score = score / 100.0 # centi-pawns to pawns
-    #score = np.tanh(score/2) # by half to stretch the curve
 
     # label is score from white's perspective
     if ptm == 'w':
         ys[idx][0] = score
-        #ys[idx+1][0] = -score
     elif ptm == 'b':
         ys[idx][0] = -score
-        #ys[idx+1][0] = score
     else:
         raise Exception(f'invalid ptm {ptm}')
 
