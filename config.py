@@ -3,7 +3,7 @@ import torch
 class CFG:
     data_path = 'data/labeled/positions-d5.csv'
     input_model_name = None
-    output_model_name = 'models/nn-d5.pt'
+    output_model_name = 'models/nn-2.pt'
 
     batch_size = 1024 * 16
     num_workers = 8
@@ -15,5 +15,5 @@ class CFG:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    clear_cache = False
+    clear_cache = True
     show_plots = True
