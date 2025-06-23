@@ -1,7 +1,7 @@
 # utility script for preprocessing
 
-ifile = "/home/james/data/chess/labeled/positions-d5.csv"
-ofile = "/home/james/data/chess/labeled/positions-d5-preprocessed.csv"
+ifile = "data/positions.csv"
+ofile = "data/preprocessed.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     for line in infile:

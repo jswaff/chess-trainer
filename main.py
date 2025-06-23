@@ -14,7 +14,7 @@ def main():
     print("output model: ", CFG.output_model_name)
 
     if CFG.clear_cache:
-        print("clearing cache.")
+        print("clearing cache")
         clear_cache_dir()
 
     train_dl, test_dl, valid_dl = build_data_loaders()
