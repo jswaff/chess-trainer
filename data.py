@@ -29,39 +29,73 @@ class MMEpdDataSet(Dataset):
     def __len__(self):
         return len(self.offsets)
 
+    # the item being returned is a mini-batch
     def __getitem__(self, idx):
 
-        encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
+        # encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
-        if os.path.exists(encoded_batch_file):
-            (Xs_tensor, Xs2_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
-        else:
-            self.f_mmap.seek(self.offsets[idx])
-            self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
+        # if os.path.exists(encoded_batch_file):
+        #     (Xs_tensor, Xs2_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
+        # else:
+        self.f_mmap.seek(self.offsets[idx])
+        self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-            Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-            Xs2 = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-            ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
+        Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
+        Xs2 = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
+        ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
 
-            lines_read = 0
-            for i in range(self.batch_size):   # //2
-                line = self.f_mmap.readline()
-                if line:
-                    line_str = line.decode("utf-8")
-                    lines_read = lines_read + 1
-                else:
-                    break
-                y, epd = line_str.split(',', 1)
-                encode(epd, float(y), Xs, Xs2, ys, i)   # * 2
+        lines_read = 0
+        for i in range(self.batch_size):   # //2
+            line = self.f_mmap.readline()
+            if line:
+                line_str = line.decode("utf-8")
+                lines_read = lines_read + 1
+            else:
+                break
+            y, epd = line_str.split(',', 1)
+            encode(epd, float(y), Xs, Xs2, ys, i)   # * 2
 
-            Xs_tensor = torch.tensor(Xs, dtype=torch.float32)
-            Xs2_tensor = torch.tensor(Xs2, dtype=torch.float32)
-            ys_tensor = torch.tensor(ys, dtype=torch.float32)
+        # convert numpy arrays to sparse tensors
+        # Xs_indices = np.array(Xs.nonzero()) # TODO: return from encoder
+        # Xs_vals = Xs[Xs.nonzero()]
+        # Xs_tensor = torch.sparse_coo_tensor(
+        #     torch.from_numpy(Xs_indices).long(),
+        #     torch.from_numpy(Xs_vals).float(),
+        #     torch.Size(Xs.shape))
+        #
+        # Xs2_indices = np.array(Xs2.nonzero())
+        # Xs2_vals = Xs2[Xs2.nonzero()]
+        # Xs2_tensor = torch.sparse_coo_tensor(
+        #     torch.from_numpy(Xs2_indices).long(),
+        #     torch.from_numpy(Xs2_vals).float(),
+        #     torch.Size(Xs2.shape))
+        #
+        # ys_indices = np.array(ys.nonzero())
+        # ys_vals = ys[ys.nonzero()]
+        # ys_tensor = torch.sparse_coo_tensor(
+        #     torch.from_numpy(ys_indices).long(),
+        #     torch.from_numpy(ys_vals).float(),
+        #     torch.Size(ys.shape))
 
-            # cache for later
-            save_encoded_batch(encoded_batch_file, Xs_tensor, Xs2_tensor, ys_tensor)
+        Xs_tensor = torch.tensor(Xs, dtype=torch.float32)
+        Xs2_tensor = torch.tensor(Xs2, dtype=torch.float32)
+        ys_tensor = torch.tensor(ys, dtype=torch.float32)
+
+        # cache for later
+        #save_encoded_batch(encoded_batch_file, Xs_tensor, Xs2_tensor, ys_tensor)
 
         return Xs_tensor, Xs2_tensor, ys_tensor
+
+def custom_collate_fn(batch):
+    # batch is a list, and should always be length=1 since batching is managed by the dataset
+    assert(len(batch)==1)
+    assert(len(batch[0])==3)
+
+    Xs = batch[0][0]
+    Xs2 = batch[0][1]
+    ys = batch[0][2]
+
+    return [Xs.to_sparse(), Xs2.to_sparse(), ys]
 
 def load_encoded_batch(fname):
     with gzip.GzipFile(fname, 'rb') as file:
@@ -147,9 +181,10 @@ def build_data_loaders():
     test_sampler = SubsetRandomSampler(test_indices)
     valid_sampler = SubsetRandomSampler(valid_indices)
 
-    train_dl = DataLoader(dataset=dataset, sampler=train_sampler, num_workers=CFG.num_workers, pin_memory=True)
-    test_dl = DataLoader(dataset=dataset, sampler=test_sampler, num_workers=CFG.num_workers, pin_memory=True)
-    valid_dl = DataLoader(dataset=dataset, sampler=valid_sampler, num_workers=CFG.num_workers, pin_memory=True)
+    # note: batching is handled by the dataset, not the dataloader
+    train_dl = DataLoader(dataset=dataset, sampler=train_sampler, collate_fn=custom_collate_fn, num_workers=CFG.num_workers, pin_memory=True)
+    test_dl = DataLoader(dataset=dataset, sampler=test_sampler, collate_fn=custom_collate_fn, num_workers=CFG.num_workers, pin_memory=True)
+    valid_dl = DataLoader(dataset=dataset, sampler=valid_sampler, collate_fn=custom_collate_fn, num_workers=CFG.num_workers, pin_memory=True)
 
     return train_dl, test_dl, valid_dl
 

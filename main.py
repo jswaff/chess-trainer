@@ -35,9 +35,9 @@ def main():
     loss_test = 0
     traced = False
     for x_batch, x2_batch, y_batch in test_dl:
-        x_batch = x_batch.squeeze(0).to(CFG.device)
-        x2_batch = x2_batch.squeeze(0).to(CFG.device)
-        y_batch = y_batch.squeeze(0).to(CFG.device)
+        x_batch = x_batch.to(CFG.device)
+        x2_batch = x2_batch.to(CFG.device)
+        y_batch = y_batch.to(CFG.device)
         pred = model(x_batch, x2_batch)
         loss = loss_fn(pred, y_batch)
         loss_test += loss.item()
