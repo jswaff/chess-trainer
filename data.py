@@ -9,8 +9,10 @@ import torch
 import torch.multiprocessing
 
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
+
 from config import CFG
 from quantize import quantize
+from scipy.sparse import csr_matrix
 
 class MMEpdDataSet(Dataset):
     def __init__(self, file_path, batch_size):
@@ -32,59 +34,59 @@ class MMEpdDataSet(Dataset):
     # the item being returned is a mini-batch
     def __getitem__(self, idx):
 
-        # encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
+        encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
-        # if os.path.exists(encoded_batch_file):
-        #     (Xs_tensor, Xs2_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
-        # else:
-        self.f_mmap.seek(self.offsets[idx])
-        self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
+        if os.path.exists(encoded_batch_file):
+            (Xs, Xs2, ys) = load_encoded_batch(encoded_batch_file)
+        else:
+            self.f_mmap.seek(self.offsets[idx])
+            self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-        Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-        Xs2 = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-        ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
+            indices = []
+            indptr = [0]
+            indices_f = [] # flipped
+            indptr_f = [0]
+            targets = []
 
-        lines_read = 0
-        for i in range(self.batch_size):   # //2
-            line = self.f_mmap.readline()
-            if line:
-                line_str = line.decode("utf-8")
-                lines_read = lines_read + 1
-            else:
-                break
-            y, epd = line_str.split(',', 1)
-            encode(epd, float(y), Xs, Xs2, ys, i)   # * 2
+            for _ in range(self.batch_size):
+                line = self.f_mmap.readline()
+                if line:
+                    line_str = line.decode("utf-8")
+                else:
+                    break
+                y, epd = line_str.split(',', 1)
+                ind, ind_f, label = encode(epd, float(y))
 
-        # convert numpy arrays to sparse tensors
-        # Xs_indices = np.array(Xs.nonzero()) # TODO: return from encoder
-        # Xs_vals = Xs[Xs.nonzero()]
-        # Xs_tensor = torch.sparse_coo_tensor(
-        #     torch.from_numpy(Xs_indices).long(),
-        #     torch.from_numpy(Xs_vals).float(),
-        #     torch.Size(Xs.shape))
-        #
-        # Xs2_indices = np.array(Xs2.nonzero())
-        # Xs2_vals = Xs2[Xs2.nonzero()]
-        # Xs2_tensor = torch.sparse_coo_tensor(
-        #     torch.from_numpy(Xs2_indices).long(),
-        #     torch.from_numpy(Xs2_vals).float(),
-        #     torch.Size(Xs2.shape))
-        #
-        # ys_indices = np.array(ys.nonzero())
-        # ys_vals = ys[ys.nonzero()]
-        # ys_tensor = torch.sparse_coo_tensor(
-        #     torch.from_numpy(ys_indices).long(),
-        #     torch.from_numpy(ys_vals).float(),
-        #     torch.Size(ys.shape))
+                indices.extend(ind)
+                #indices += [ind]
+                indptr += [indptr[-1] + len(ind)]
 
-        Xs_tensor = torch.tensor(Xs, dtype=torch.float32)
-        Xs2_tensor = torch.tensor(Xs2, dtype=torch.float32)
-        ys_tensor = torch.tensor(ys, dtype=torch.float32)
+                indices_f.extend(ind_f)
+                indptr_f += [indptr_f[-1] + len(ind_f)]
 
-        # cache for later
-        #save_encoded_batch(encoded_batch_file, Xs_tensor, Xs2_tensor, ys_tensor)
+                targets.append(label)
 
-        return Xs_tensor, Xs2_tensor, ys_tensor
+            # construct sparse tensor from indices
+            data = [1] * len(indices)
+            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            Xs = torch.sparse_coo_tensor(
+                torch.LongTensor(np.vstack((coo.row, coo.col))),
+                torch.FloatTensor(coo.data),
+                torch.Size([self.batch_size, 768]))
+
+            data = [1] * len(indices_f)
+            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            Xs2 = torch.sparse_coo_tensor(
+                torch.LongTensor(np.vstack((coo.row, coo.col))),
+                torch.FloatTensor(coo.data),
+                torch.Size([self.batch_size, 768]))
+
+            ys = torch.from_numpy(np.array(targets)).unsqueeze(1).to(torch.float32)
+
+            # cache for later
+            #save_encoded_batch(encoded_batch_file, Xs, Xs2, ys)
+
+        return Xs, Xs2, ys
 
 def custom_collate_fn(batch):
     # batch is a list, and should always be length=1 since batching is managed by the dataset
@@ -95,7 +97,7 @@ def custom_collate_fn(batch):
     Xs2 = batch[0][1]
     ys = batch[0][2]
 
-    return [Xs.to_sparse(), Xs2.to_sparse(), ys]
+    return [Xs, Xs2, ys]
 
 def load_encoded_batch(fname):
     with gzip.GzipFile(fname, 'rb') as file:
@@ -107,10 +109,7 @@ def save_encoded_batch(fname, Xs, Xs2, ys):
     with gzip.GzipFile(fname, 'wb') as file:
         pickle.dump((Xs,Xs2,ys), file)
 
-# Xs : one hot representation of position in epd
-# Xs2 : one hot representation of the position in epd flipped (a white rook on A1 is now a black rook on A8)
-# ys : score (label) of epd, from white's perspective
-def encode(epd, score, Xs, Xs2, ys, idx):
+def encode(epd, score):
     epd_parts = epd.split(" ")
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
@@ -130,38 +129,36 @@ def encode(epd, score, Xs, Xs2, ys, idx):
         'k' : 704
     }
 
+    ind = []
+    flipped_ind = []
     sq = 0
     for rank_ind, rank in enumerate(ranks):
-        col_ind = 0
         for ch in rank:
             if '1' <= ch <= '8':
-                col_ind += int(ch)
                 sq += int(ch)
             elif ch in offsets.keys():
-                player_offset = offsets[ch]
-                opp_offset = offsets[ch.swapcase()]
-                flipped_sq = abs(7-rank_ind)*8 + col_ind
-                Xs[idx][player_offset + sq] = 1
-                Xs2[idx][opp_offset + flipped_sq] = 1
-                col_ind += 1
+                ind.append(offsets[ch] + sq)
+                flipped_ind.append(offsets[ch.swapcase()] + (sq ^ 56))
                 sq += 1
             else:
-                raise Exception(f'invalid FEN character {ch}')
-    if sq != 64:
-        raise Exception(f'invalid square count {sq}')
+                raise Exception(f'invalid FEN character {ch} in {epd_parts[0]}')
+
+    assert(sq==64)
 
     score = score / 100.0 # centi-pawns to pawns
 
-    # label is score from white's perspective
+    # label needs to be from white's perspective
     if ptm == 'w':
-        ys[idx][0] = score
+        label = score
     elif ptm == 'b':
-        ys[idx][0] = -score
+        label = -score
     else:
         raise Exception(f'invalid ptm {ptm}')
 
-    assert(2 <= np.count_nonzero(Xs[idx], 0) <= 32)
-    assert(2 <= np.count_nonzero(Xs2[idx], 0) <= 32)
+    assert(2 <= len(ind) <= 32)
+    assert(2 <= len(flipped_ind) <= 32)
+
+    return ind, flipped_ind, label
 
 def build_data_loaders():
     print(f'data_path: {CFG.data_path}')

@@ -10,4 +10,5 @@ pip3 install matplotlib
 pip3 install scikit-learn  
 pip3 install torch  
 pip3 install PyQt5  
+pip3 install scypy
 

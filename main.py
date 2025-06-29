@@ -44,7 +44,7 @@ def main():
         # trace model and save in torch script format
         if not traced:
             model.to("cpu")
-            traced_script_module = torch.jit.trace(model, (x_batch.to("cpu"), x2_batch.to("cpu")))
+            traced_script_module = torch.jit.trace(model, (x_batch.to_dense().to("cpu"), x2_batch.to_dense().to("cpu")))
             traced_script_module.save(CFG.output_model_name.replace(".pt", "-ts.pt"))
             model.to(CFG.device)
             traced = True
