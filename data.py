@@ -1,3 +1,4 @@
+import gzip
 import mmap
 import os.path
 import shutil
@@ -32,7 +33,7 @@ class MMEpdDataSet(Dataset):
     # the item being returned is a mini-batch
     def __getitem__(self, idx):
 
-        cached_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pt'
+        cached_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pt.gz'
 
         if os.path.exists(cached_batch_file):
             (Xs, Xs2, ys) = load_batch(cached_batch_file)
@@ -100,7 +101,10 @@ def custom_collate_fn(batch):
     return [Xs, Xs2, ys]
 
 def load_batch(filename):
-    data = torch.load(filename)
+    with gzip.open(filename, 'rb') as f:
+        data = torch.load(f)
+    #Xs = data['Xs']
+    #Xs2 = data['Xs2']
     Xs = torch.sparse_coo_tensor(data['Xs_i'], data['Xs_v'], data['Xs_shape'])
     Xs2 = torch.sparse_coo_tensor(data['Xs2_i'], data['Xs2_v'], data['Xs2_shape'])
     ys = data['ys']
@@ -112,6 +116,8 @@ def save_batch(filename, Xs, Xs2, ys):
     Xs2 = Xs2.coalesce()
 
     data = {
+        #'Xs': Xs,
+        #'Xs2': Xs2,
         'Xs_i': Xs.indices(),
         'Xs_v': Xs.values(),
         'Xs_shape': Xs.shape,
@@ -120,27 +126,16 @@ def save_batch(filename, Xs, Xs2, ys):
         'Xs2_shape': Xs2.shape,
         'ys': ys
     }
-    torch.save(data, filename)
+
+    with gzip.open(filename, 'wb') as f:
+        torch.save(data, f)
 
 def encode(epd, score):
     epd_parts = epd.split(" ")
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
 
-    offsets = {
-        'P' :   0,
-        'p' :  64,
-        'N' : 128,
-        'n' : 192,
-        'B' : 256,
-        'b' : 320,
-        'R' : 384,
-        'r' : 448,
-        'Q' : 512,
-        'q' : 576,
-        'K' : 640,
-        'k' : 704
-    }
+    pieces = ['P','p','N','n','B','b','R','r','Q','q','K','k']
 
     ind = []
     flipped_ind = []
@@ -149,9 +144,9 @@ def encode(epd, score):
         for ch in rank:
             if '1' <= ch <= '8':
                 sq += int(ch)
-            elif ch in offsets.keys():
-                ind.append(offsets[ch] + sq)
-                flipped_ind.append(offsets[ch.swapcase()] + (sq ^ 56))
+            elif ch in pieces:
+                ind.append(pieces.index(ch) * 64 + sq)
+                flipped_ind.append(pieces.index(ch.swapcase()) * 64 + (sq ^ 56))
                 sq += 1
             else:
                 raise Exception(f'invalid FEN character {ch} in {epd_parts[0]}')
