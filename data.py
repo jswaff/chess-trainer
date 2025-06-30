@@ -1,7 +1,5 @@
-import gzip
 import mmap
 import os.path
-import pickle
 import shutil
 
 import numpy as np
@@ -34,10 +32,10 @@ class MMEpdDataSet(Dataset):
     # the item being returned is a mini-batch
     def __getitem__(self, idx):
 
-        encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
+        cached_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pt'
 
-        if os.path.exists(encoded_batch_file):
-            (indices, indptr, indices_f, indptr_f, labels) = load_encoded_batch(encoded_batch_file)
+        if os.path.exists(cached_batch_file):
+            (Xs, Xs2, ys) = load_batch(cached_batch_file)
         else:
             # read batch from disk in EPD format
             self.f_mmap.seek(self.offsets[idx])
@@ -67,26 +65,26 @@ class MMEpdDataSet(Dataset):
 
                 labels.append(label)
 
+            # construct sparse feature tensors
+            data = [1] * len(indices)
+            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            Xs = torch.sparse_coo_tensor(
+                torch.LongTensor(np.vstack((coo.row, coo.col))),
+                torch.FloatTensor(coo.data),
+                torch.Size([self.batch_size, 768]))
+
+            data = [1] * len(indices_f)
+            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            Xs2 = torch.sparse_coo_tensor(
+                torch.LongTensor(np.vstack((coo.row, coo.col))),
+                torch.FloatTensor(coo.data),
+                torch.Size([self.batch_size, 768]))
+
+            # construct label tensor
+            ys = torch.from_numpy(np.array(labels)).unsqueeze(1).to(torch.float32)
+
             # cache for later
-            save_encoded_batch(encoded_batch_file, indices, indptr, indices_f, indptr_f, labels)
-
-        # construct sparse feature tensors
-        data = [1] * len(indices)
-        coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
-        Xs = torch.sparse_coo_tensor(
-            torch.LongTensor(np.vstack((coo.row, coo.col))),
-            torch.FloatTensor(coo.data),
-            torch.Size([self.batch_size, 768]))
-
-        data = [1] * len(indices_f)
-        coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
-        Xs2 = torch.sparse_coo_tensor(
-            torch.LongTensor(np.vstack((coo.row, coo.col))),
-            torch.FloatTensor(coo.data),
-            torch.Size([self.batch_size, 768]))
-
-        # construct label tensor
-        ys = torch.from_numpy(np.array(labels)).unsqueeze(1).to(torch.float32)
+            save_batch(cached_batch_file, Xs, Xs2, ys)
 
         return Xs, Xs2, ys
 
@@ -101,25 +99,28 @@ def custom_collate_fn(batch):
 
     return [Xs, Xs2, ys]
 
-# def load_encoded_batch(fname):
-#     with gzip.GzipFile(fname, 'rb') as file:
-#         (Xs,Xs2,ys) = pickle.load(file)
-#         return Xs,Xs2,ys
+def load_batch(filename):
+    data = torch.load(filename)
+    Xs = torch.sparse_coo_tensor(data['Xs_i'], data['Xs_v'], data['Xs_shape'])
+    Xs2 = torch.sparse_coo_tensor(data['Xs2_i'], data['Xs2_v'], data['Xs2_shape'])
+    ys = data['ys']
+    return Xs,Xs2,ys
 
-def load_encoded_batch(fname):
-    with gzip.GzipFile(fname, 'rb') as file:
-        (indices, indptr, indices_f, indptr_f, labels) = pickle.load(file)
-        return indices, indptr, indices_f, indptr_f, labels
+def save_batch(filename, Xs, Xs2, ys):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    Xs = Xs.coalesce()
+    Xs2 = Xs2.coalesce()
 
-# def save_encoded_batch(fname, Xs, Xs2, ys):
-#     os.makedirs(os.path.dirname(fname), exist_ok=True)
-#     with gzip.GzipFile(fname, 'wb') as file:
-#         pickle.dump((Xs,Xs2,ys), file)
-
-def save_encoded_batch(fname, indices, indptr, indices_f, indptr_f, labels):
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    with gzip.GzipFile(fname, 'wb') as file:
-        pickle.dump((indices, indptr, indices_f, indptr_f, labels), file)
+    data = {
+        'Xs_i': Xs.indices(),
+        'Xs_v': Xs.values(),
+        'Xs_shape': Xs.shape,
+        'Xs2_i': Xs2.indices(),
+        'Xs2_v': Xs2.values(),
+        'Xs2_shape': Xs2.shape,
+        'ys': ys
+    }
+    torch.save(data, filename)
 
 def encode(epd, score):
     epd_parts = epd.split(" ")
