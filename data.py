@@ -37,16 +37,18 @@ class MMEpdDataSet(Dataset):
         encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
 
         if os.path.exists(encoded_batch_file):
-            (Xs, Xs2, ys) = load_encoded_batch(encoded_batch_file)
+            (indices, indptr, indices_f, indptr_f, labels) = load_encoded_batch(encoded_batch_file)
         else:
+            # read batch from disk in EPD format
             self.f_mmap.seek(self.offsets[idx])
             self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
+            # encode batch
             indices = []
             indptr = [0]
             indices_f = [] # flipped
             indptr_f = [0]
-            targets = []
+            labels = []
 
             for _ in range(self.batch_size):
                 line = self.f_mmap.readline()
@@ -57,34 +59,34 @@ class MMEpdDataSet(Dataset):
                 y, epd = line_str.split(',', 1)
                 ind, ind_f, label = encode(epd, float(y))
 
-                indices.extend(ind)
-                #indices += [ind]
+                indices += ind
                 indptr += [indptr[-1] + len(ind)]
 
-                indices_f.extend(ind_f)
+                indices_f += ind_f
                 indptr_f += [indptr_f[-1] + len(ind_f)]
 
-                targets.append(label)
-
-            # construct sparse tensor from indices
-            data = [1] * len(indices)
-            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
-            Xs = torch.sparse_coo_tensor(
-                torch.LongTensor(np.vstack((coo.row, coo.col))),
-                torch.FloatTensor(coo.data),
-                torch.Size([self.batch_size, 768]))
-
-            data = [1] * len(indices_f)
-            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
-            Xs2 = torch.sparse_coo_tensor(
-                torch.LongTensor(np.vstack((coo.row, coo.col))),
-                torch.FloatTensor(coo.data),
-                torch.Size([self.batch_size, 768]))
-
-            ys = torch.from_numpy(np.array(targets)).unsqueeze(1).to(torch.float32)
+                labels.append(label)
 
             # cache for later
-            #save_encoded_batch(encoded_batch_file, Xs, Xs2, ys)
+            save_encoded_batch(encoded_batch_file, indices, indptr, indices_f, indptr_f, labels)
+
+        # construct sparse feature tensors
+        data = [1] * len(indices)
+        coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+        Xs = torch.sparse_coo_tensor(
+            torch.LongTensor(np.vstack((coo.row, coo.col))),
+            torch.FloatTensor(coo.data),
+            torch.Size([self.batch_size, 768]))
+
+        data = [1] * len(indices_f)
+        coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+        Xs2 = torch.sparse_coo_tensor(
+            torch.LongTensor(np.vstack((coo.row, coo.col))),
+            torch.FloatTensor(coo.data),
+            torch.Size([self.batch_size, 768]))
+
+        # construct label tensor
+        ys = torch.from_numpy(np.array(labels)).unsqueeze(1).to(torch.float32)
 
         return Xs, Xs2, ys
 
@@ -99,15 +101,25 @@ def custom_collate_fn(batch):
 
     return [Xs, Xs2, ys]
 
+# def load_encoded_batch(fname):
+#     with gzip.GzipFile(fname, 'rb') as file:
+#         (Xs,Xs2,ys) = pickle.load(file)
+#         return Xs,Xs2,ys
+
 def load_encoded_batch(fname):
     with gzip.GzipFile(fname, 'rb') as file:
-        (Xs,Xs2,ys) = pickle.load(file)
-        return Xs,Xs2,ys
+        (indices, indptr, indices_f, indptr_f, labels) = pickle.load(file)
+        return indices, indptr, indices_f, indptr_f, labels
 
-def save_encoded_batch(fname, Xs, Xs2, ys):
+# def save_encoded_batch(fname, Xs, Xs2, ys):
+#     os.makedirs(os.path.dirname(fname), exist_ok=True)
+#     with gzip.GzipFile(fname, 'wb') as file:
+#         pickle.dump((Xs,Xs2,ys), file)
+
+def save_encoded_batch(fname, indices, indptr, indices_f, indptr_f, labels):
     os.makedirs(os.path.dirname(fname), exist_ok=True)
     with gzip.GzipFile(fname, 'wb') as file:
-        pickle.dump((Xs,Xs2,ys), file)
+        pickle.dump((indices, indptr, indices_f, indptr_f, labels), file)
 
 def encode(epd, score):
     epd_parts = epd.split(" ")
