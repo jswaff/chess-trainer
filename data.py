@@ -68,18 +68,18 @@ class MMEpdDataSet(Dataset):
 
             # construct sparse feature tensors
             data = [1] * len(indices)
-            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 40960), dtype=np.int8).tocoo()
             Xs = torch.sparse_coo_tensor(
                 torch.LongTensor(np.vstack((coo.row, coo.col))),
                 torch.FloatTensor(coo.data),
-                torch.Size([self.batch_size, 768]))
+                torch.Size([self.batch_size, 40960]))
 
             data = [1] * len(indices_f)
-            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 40960), dtype=np.int8).tocoo()
             Xs2 = torch.sparse_coo_tensor(
                 torch.LongTensor(np.vstack((coo.row, coo.col))),
                 torch.FloatTensor(coo.data),
-                torch.Size([self.batch_size, 768]))
+                torch.Size([self.batch_size, 40960]))
 
             # construct label tensor
             ys = torch.from_numpy(np.array(labels)).unsqueeze(1).to(torch.float32)

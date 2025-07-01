@@ -10,7 +10,7 @@ class Model(torch.nn.Module):
     def __init__(self, load_file=None):
         super(Model, self).__init__()
 
-        self.fc1 = torch.nn.Linear(768, NN_SIZE_L1)
+        self.fc1 = torch.nn.Linear(40960, NN_SIZE_L1)
         self.fc2 = torch.nn.Linear(NN_SIZE_L1 * 2, NN_SIZE_L2)
 
         if load_file is not None:
