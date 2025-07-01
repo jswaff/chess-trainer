@@ -35,16 +35,16 @@ def main():
     loss_test = 0
     traced = False
     for x_batch, x2_batch, y_batch in test_dl:
-        x_batch = x_batch.squeeze(0).to(CFG.device)
-        x2_batch = x2_batch.squeeze(0).to(CFG.device)
-        y_batch = y_batch.squeeze(0).to(CFG.device)
+        x_batch = x_batch.to(CFG.device)
+        x2_batch = x2_batch.to(CFG.device)
+        y_batch = y_batch.to(CFG.device)
         pred = model(x_batch, x2_batch)
         loss = loss_fn(pred, y_batch)
         loss_test += loss.item()
         # trace model and save in torch script format
         if not traced:
             model.to("cpu")
-            traced_script_module = torch.jit.trace(model, (x_batch.to("cpu"), x2_batch.to("cpu")))
+            traced_script_module = torch.jit.trace(model, (x_batch.to_dense().to("cpu"), x2_batch.to_dense().to("cpu")))
             traced_script_module.save(CFG.output_model_name.replace(".pt", "-ts.pt"))
             model.to(CFG.device)
             traced = True

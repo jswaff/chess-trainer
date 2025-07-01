@@ -1,7 +1,6 @@
 import gzip
 import mmap
 import os.path
-import pickle
 import shutil
 
 import numpy as np
@@ -9,8 +8,10 @@ import torch
 import torch.multiprocessing
 
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
+
 from config import CFG
 from quantize import quantize
+from scipy.sparse import csr_matrix
 
 class MMEpdDataSet(Dataset):
     def __init__(self, file_path, batch_size):
@@ -29,105 +30,143 @@ class MMEpdDataSet(Dataset):
     def __len__(self):
         return len(self.offsets)
 
+    # the item being returned is a mini-batch
     def __getitem__(self, idx):
 
-        encoded_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pickle'
+        cached_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pt.gz'
 
-        if os.path.exists(encoded_batch_file):
-            (Xs_tensor, Xs2_tensor, ys_tensor) = load_encoded_batch(encoded_batch_file)
+        if os.path.exists(cached_batch_file):
+            (Xs, Xs2, ys) = load_batch(cached_batch_file)
         else:
+            # read batch from disk in EPD format
             self.f_mmap.seek(self.offsets[idx])
             self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
-            Xs = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-            Xs2 = np.zeros(shape=(self.batch_size, 768), dtype=np.float32)
-            ys = np.zeros(shape=(self.batch_size, 1), dtype=np.float32)
+            # encode batch
+            indices = []
+            indptr = [0]
+            indices_f = [] # flipped
+            indptr_f = [0]
+            labels = []
 
-            lines_read = 0
-            for i in range(self.batch_size):   # //2
+            for _ in range(self.batch_size):
                 line = self.f_mmap.readline()
                 if line:
                     line_str = line.decode("utf-8")
-                    lines_read = lines_read + 1
                 else:
                     break
                 y, epd = line_str.split(',', 1)
-                encode(epd, float(y), Xs, Xs2, ys, i)   # * 2
+                ind, ind_f, label = encode(epd, float(y))
 
-            Xs_tensor = torch.tensor(Xs, dtype=torch.float32)
-            Xs2_tensor = torch.tensor(Xs2, dtype=torch.float32)
-            ys_tensor = torch.tensor(ys, dtype=torch.float32)
+                indices += ind
+                indptr += [indptr[-1] + len(ind)]
+
+                indices_f += ind_f
+                indptr_f += [indptr_f[-1] + len(ind_f)]
+
+                labels.append(label)
+
+            # construct sparse feature tensors
+            data = [1] * len(indices)
+            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            Xs = torch.sparse_coo_tensor(
+                torch.LongTensor(np.vstack((coo.row, coo.col))),
+                torch.FloatTensor(coo.data),
+                torch.Size([self.batch_size, 768]))
+
+            data = [1] * len(indices_f)
+            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 768), dtype=np.int8).tocoo()
+            Xs2 = torch.sparse_coo_tensor(
+                torch.LongTensor(np.vstack((coo.row, coo.col))),
+                torch.FloatTensor(coo.data),
+                torch.Size([self.batch_size, 768]))
+
+            # construct label tensor
+            ys = torch.from_numpy(np.array(labels)).unsqueeze(1).to(torch.float32)
 
             # cache for later
-            save_encoded_batch(encoded_batch_file, Xs_tensor, Xs2_tensor, ys_tensor)
+            save_batch(cached_batch_file, Xs, Xs2, ys)
 
-        return Xs_tensor, Xs2_tensor, ys_tensor
+        return Xs, Xs2, ys
 
-def load_encoded_batch(fname):
-    with gzip.GzipFile(fname, 'rb') as file:
-        (Xs,Xs2,ys) = pickle.load(file)
-        return Xs,Xs2,ys
+def custom_collate_fn(batch):
+    # batch is a list, and should always be length=1 since batching is managed by the dataset
+    assert(len(batch)==1)
+    assert(len(batch[0])==3)
 
-def save_encoded_batch(fname, Xs, Xs2, ys):
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    with gzip.GzipFile(fname, 'wb') as file:
-        pickle.dump((Xs,Xs2,ys), file)
+    Xs = batch[0][0]
+    Xs2 = batch[0][1]
+    ys = batch[0][2]
 
-# Xs : one hot representation of position in epd
-# Xs2 : one hot representation of the position in epd flipped (a white rook on A1 is now a black rook on A8)
-# ys : score (label) of epd, from white's perspective
-def encode(epd, score, Xs, Xs2, ys, idx):
+    return [Xs, Xs2, ys]
+
+def load_batch(filename):
+    with gzip.open(filename, 'rb') as f:
+        data = torch.load(f)
+    #Xs = data['Xs']
+    #Xs2 = data['Xs2']
+    Xs = torch.sparse_coo_tensor(data['Xs_i'], data['Xs_v'], data['Xs_shape'])
+    Xs2 = torch.sparse_coo_tensor(data['Xs2_i'], data['Xs2_v'], data['Xs2_shape'])
+    ys = data['ys']
+    return Xs,Xs2,ys
+
+def save_batch(filename, Xs, Xs2, ys):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    Xs = Xs.coalesce()
+    Xs2 = Xs2.coalesce()
+
+    data = {
+        #'Xs': Xs,
+        #'Xs2': Xs2,
+        'Xs_i': Xs.indices(),
+        'Xs_v': Xs.values(),
+        'Xs_shape': Xs.shape,
+        'Xs2_i': Xs2.indices(),
+        'Xs2_v': Xs2.values(),
+        'Xs2_shape': Xs2.shape,
+        'ys': ys
+    }
+
+    with gzip.open(filename, 'wb') as f:
+        torch.save(data, f)
+
+def encode(epd, score):
     epd_parts = epd.split(" ")
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
 
-    offsets = {
-        'P' :   0,
-        'p' :  64,
-        'N' : 128,
-        'n' : 192,
-        'B' : 256,
-        'b' : 320,
-        'R' : 384,
-        'r' : 448,
-        'Q' : 512,
-        'q' : 576,
-        'K' : 640,
-        'k' : 704
-    }
+    pieces = ['P','p','N','n','B','b','R','r','Q','q','K','k']
 
+    ind = []
+    flipped_ind = []
     sq = 0
     for rank_ind, rank in enumerate(ranks):
-        col_ind = 0
         for ch in rank:
             if '1' <= ch <= '8':
-                col_ind += int(ch)
                 sq += int(ch)
-            elif ch in offsets.keys():
-                player_offset = offsets[ch]
-                opp_offset = offsets[ch.swapcase()]
-                flipped_sq = abs(7-rank_ind)*8 + col_ind
-                Xs[idx][player_offset + sq] = 1
-                Xs2[idx][opp_offset + flipped_sq] = 1
-                col_ind += 1
+            elif ch in pieces:
+                ind.append(pieces.index(ch) * 64 + sq)
+                flipped_ind.append(pieces.index(ch.swapcase()) * 64 + (sq ^ 56))
                 sq += 1
             else:
-                raise Exception(f'invalid FEN character {ch}')
-    if sq != 64:
-        raise Exception(f'invalid square count {sq}')
+                raise Exception(f'invalid FEN character {ch} in {epd_parts[0]}')
+
+    assert(sq==64)
 
     score = score / 100.0 # centi-pawns to pawns
 
-    # label is score from white's perspective
+    # label needs to be from white's perspective
     if ptm == 'w':
-        ys[idx][0] = score
+        label = score
     elif ptm == 'b':
-        ys[idx][0] = -score
+        label = -score
     else:
         raise Exception(f'invalid ptm {ptm}')
 
-    assert(2 <= np.count_nonzero(Xs[idx], 0) <= 32)
-    assert(2 <= np.count_nonzero(Xs2[idx], 0) <= 32)
+    assert(2 <= len(ind) <= 32)
+    assert(2 <= len(flipped_ind) <= 32)
+
+    return ind, flipped_ind, label
 
 def build_data_loaders():
     print(f'data_path: {CFG.data_path}')
@@ -147,9 +186,10 @@ def build_data_loaders():
     test_sampler = SubsetRandomSampler(test_indices)
     valid_sampler = SubsetRandomSampler(valid_indices)
 
-    train_dl = DataLoader(dataset=dataset, sampler=train_sampler, num_workers=CFG.num_workers, pin_memory=True)
-    test_dl = DataLoader(dataset=dataset, sampler=test_sampler, num_workers=CFG.num_workers, pin_memory=True)
-    valid_dl = DataLoader(dataset=dataset, sampler=valid_sampler, num_workers=CFG.num_workers, pin_memory=True)
+    # note: batching is handled by the dataset, not the dataloader
+    train_dl = DataLoader(dataset=dataset, sampler=train_sampler, collate_fn=custom_collate_fn, num_workers=CFG.num_workers, pin_memory=True)
+    test_dl = DataLoader(dataset=dataset, sampler=test_sampler, collate_fn=custom_collate_fn, num_workers=CFG.num_workers, pin_memory=True)
+    valid_dl = DataLoader(dataset=dataset, sampler=valid_sampler, collate_fn=custom_collate_fn, num_workers=CFG.num_workers, pin_memory=True)
 
     return train_dl, test_dl, valid_dl
 
