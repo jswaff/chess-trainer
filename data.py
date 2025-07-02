@@ -43,10 +43,10 @@ class MMEpdDataSet(Dataset):
             self.f_mmap.madvise(mmap.MADV_SEQUENTIAL)
 
             # encode batch
-            indices = []
-            indptr = [0]
-            indices_f = [] # flipped
-            indptr_f = [0]
+            indices1 = []
+            indptr1 = [0]
+            indices2 = []
+            indptr2 = [0]
             labels = []
 
             for _ in range(self.batch_size):
@@ -56,26 +56,26 @@ class MMEpdDataSet(Dataset):
                 else:
                     break
                 y, epd = line_str.split(',', 1)
-                ind, ind_f, label = encode(epd, float(y))
+                ind1, ind2, label = encode(epd, float(y))
 
-                indices += ind
-                indptr += [indptr[-1] + len(ind)]
+                indices1 += ind1
+                indptr1 += [indptr1[-1] + len(ind1)]
 
-                indices_f += ind_f
-                indptr_f += [indptr_f[-1] + len(ind_f)]
+                indices2 += ind2
+                indptr2 += [indptr2[-1] + len(ind2)]
 
                 labels.append(label)
 
             # construct sparse feature tensors
-            data = [1] * len(indices)
-            coo = csr_matrix((data, indices, indptr), shape=(self.batch_size, 40960), dtype=np.int8).tocoo()
+            data = [1] * len(indices1)
+            coo = csr_matrix((data, indices1, indptr1), shape=(self.batch_size, 40960), dtype=np.int8).tocoo()
             Xs = torch.sparse_coo_tensor(
                 torch.LongTensor(np.vstack((coo.row, coo.col))),
                 torch.FloatTensor(coo.data),
                 torch.Size([self.batch_size, 40960]))
 
-            data = [1] * len(indices_f)
-            coo = csr_matrix((data, indices_f, indptr_f), shape=(self.batch_size, 40960), dtype=np.int8).tocoo()
+            data = [1] * len(indices2)
+            coo = csr_matrix((data, indices2, indptr2), shape=(self.batch_size, 40960), dtype=np.int8).tocoo()
             Xs2 = torch.sparse_coo_tensor(
                 torch.LongTensor(np.vstack((coo.row, coo.col))),
                 torch.FloatTensor(coo.data),
@@ -135,21 +135,51 @@ def encode(epd, score):
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
 
-    pieces = ['P','p','N','n','B','b','R','r','Q','q','K','k']
+    pieces = ['P','p','N','n','B','b','R','r','Q','q']
 
-    ind = []
-    flipped_ind = []
+    # get king squares
+    w_king = None
+    b_king = None
     sq = 0
-    for rank_ind, rank in enumerate(ranks):
+    for _, rank in enumerate(ranks):
+        for ch in rank:
+            if '1' <= ch <= '8':
+                sq += int(ch)
+            elif ch == 'K':
+                if w_king is not None:
+                    raise Exception(f'Multiple white kings in {epd_parts[0]}')
+                w_king = sq
+                sq += 1
+            elif ch == 'k':
+                if b_king is not None:
+                    raise Exception(f'Multiple black kings in {epd_parts[0]}')
+                b_king = sq
+                sq += 1
+            elif ch in pieces:
+                sq += 1
+            else:
+                raise Exception(f'invalid FEN character {ch} in {epd_parts[0]}')
+
+    assert(sq==64)
+    if w_king is None:
+        raise Exception(f'white king not found in {epd_parts[0]}')
+    if b_king is None:
+        raise Exception(f'black king not found in {epd_parts[0]}')
+
+    # create indices
+    ind1 = []
+    ind2 = []
+    sq = 0
+    for _, rank in enumerate(ranks):
         for ch in rank:
             if '1' <= ch <= '8':
                 sq += int(ch)
             elif ch in pieces:
-                ind.append(pieces.index(ch) * 64 + sq)
-                flipped_ind.append(pieces.index(ch.swapcase()) * 64 + (sq ^ 56))
+                ind1.append(w_king * 640 + pieces.index(ch) * 64 + sq)
+                ind2.append((b_king ^ 56) * 640 + pieces.index(ch.swapcase()) * 64 + (sq ^ 56))
                 sq += 1
-            else:
-                raise Exception(f'invalid FEN character {ch} in {epd_parts[0]}')
+            elif ch in ['K','k']:
+                sq += 1
 
     assert(sq==64)
 
@@ -161,12 +191,12 @@ def encode(epd, score):
     elif ptm == 'b':
         label = -score
     else:
-        raise Exception(f'invalid ptm {ptm}')
+        raise Exception(f'invalid ptm {ptm} in {epd_parts[0]}')
 
-    assert(2 <= len(ind) <= 32)
-    assert(2 <= len(flipped_ind) <= 32)
+    assert(0 <= len(ind1) <= 30)  # min and max piece count minus kings
+    assert(0 <= len(ind2) <= 30)
 
-    return ind, flipped_ind, label
+    return ind1, ind2, label
 
 def build_data_loaders():
     print(f'data_path: {CFG.data_path}')
