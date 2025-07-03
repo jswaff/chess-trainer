@@ -2,6 +2,12 @@ Extract 10% of positions in FEN format from PGN:
 
 pgn-extract -Wfen <pgnfile> --notags -s | grep "\S"  | awk 'NR % 10 == 0' > <fenfile>
 
+use -Wepd to get game result
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - c0 toad-3.0-prophet-4.4 ? ? 2025.04.22; c1 0-1;
+c1 will be the game result
+this would remove c0 tags:
+sed 's/c0.*c1/c1/g' epd.txt
+
 Remove duplicates
 time sort -u infile > outfile
 
