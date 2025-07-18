@@ -55,8 +55,8 @@ class MMEpdDataSet(Dataset):
                     line_str = line.decode("utf-8")
                 else:
                     break
-                y, epd = line_str.split(',', 1)
-                ind, ind_f, label = encode(epd, float(y))
+                epd, score, wins, draws, losses = line_str.split(',')
+                ind, ind_f, label = encode(epd, float(score))
 
                 indices += ind
                 indptr += [indptr[-1] + len(ind)]
