@@ -36,7 +36,7 @@ class MMEpdDataSet(Dataset):
         cached_batch_file = 'cache/' + str(idx // 1000) + '/' + str(idx) + '.pt.gz'
 
         if os.path.exists(cached_batch_file):
-            (Xs, Xs2, ys) = load_batch(cached_batch_file)
+            (Xs, Xs2, ys,ys2) = load_batch(cached_batch_file)
         else:
             # read batch from disk in EPD format
             self.f_mmap.seek(self.offsets[idx])
@@ -47,7 +47,8 @@ class MMEpdDataSet(Dataset):
             indptr = [0]
             indices_f = [] # flipped
             indptr_f = [0]
-            labels = []
+            wscores = []
+            win_ratios = []
 
             for _ in range(self.batch_size):
                 line = self.f_mmap.readline()
@@ -56,7 +57,7 @@ class MMEpdDataSet(Dataset):
                 else:
                     break
                 epd, score, wins, draws, losses = line_str.split(',')
-                ind, ind_f, label = encode(epd, float(score))
+                ind, ind_f, wscore, win_ratio = encode(epd, float(score), int(wins), int(draws), int(losses))
 
                 indices += ind
                 indptr += [indptr[-1] + len(ind)]
@@ -64,7 +65,8 @@ class MMEpdDataSet(Dataset):
                 indices_f += ind_f
                 indptr_f += [indptr_f[-1] + len(ind_f)]
 
-                labels.append(label)
+                wscores.append(wscore)
+                win_ratios.append(win_ratio)
 
             # construct sparse feature tensors
             data = [1] * len(indices)
@@ -82,23 +84,25 @@ class MMEpdDataSet(Dataset):
                 torch.Size([self.batch_size, 768]))
 
             # construct label tensor
-            ys = torch.from_numpy(np.array(labels)).unsqueeze(1).to(torch.float32)
+            ys = torch.from_numpy(np.array(wscores)).unsqueeze(1).to(torch.float32)
+            ys2 = torch.from_numpy(np.array(win_ratios)).unsqueeze(1).to(torch.float32)
 
             # cache for later
-            save_batch(cached_batch_file, Xs, Xs2, ys)
+            save_batch(cached_batch_file, Xs, Xs2, ys, ys2)
 
-        return Xs, Xs2, ys
+        return Xs, Xs2, ys, ys2
 
 def custom_collate_fn(batch):
     # batch is a list, and should always be length=1 since batching is managed by the dataset
     assert(len(batch)==1)
-    assert(len(batch[0])==3)
+    assert(len(batch[0])==4)
 
     Xs = batch[0][0]
     Xs2 = batch[0][1]
     ys = batch[0][2]
+    ys2 = batch[0][3]
 
-    return [Xs, Xs2, ys]
+    return [Xs, Xs2, ys, ys2]
 
 def load_batch(filename):
     with gzip.open(filename, 'rb') as f:
@@ -108,9 +112,10 @@ def load_batch(filename):
     Xs = torch.sparse_coo_tensor(data['Xs_i'], data['Xs_v'], data['Xs_shape'])
     Xs2 = torch.sparse_coo_tensor(data['Xs2_i'], data['Xs2_v'], data['Xs2_shape'])
     ys = data['ys']
-    return Xs,Xs2,ys
+    ys2 = data['ys2']
+    return Xs,Xs2,ys,ys2
 
-def save_batch(filename, Xs, Xs2, ys):
+def save_batch(filename, Xs, Xs2, ys, ys2):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     Xs = Xs.coalesce()
     Xs2 = Xs2.coalesce()
@@ -124,13 +129,14 @@ def save_batch(filename, Xs, Xs2, ys):
         'Xs2_i': Xs2.indices(),
         'Xs2_v': Xs2.values(),
         'Xs2_shape': Xs2.shape,
-        'ys': ys
+        'ys': ys,
+        'ys2': ys2
     }
 
     with gzip.open(filename, 'wb') as f:
         torch.save(data, f)
 
-def encode(epd, score):
+def encode(epd, score, wins, draws, losses):
     epd_parts = epd.split(" ")
     ranks = epd_parts[0].split("/")
     ptm = epd_parts[1]
@@ -153,20 +159,23 @@ def encode(epd, score):
 
     assert(sq==64)
 
-    score = score / 100.0 # centi-pawns to pawns
-
-    # label needs to be from white's perspective
-    if ptm == 'w':
-        label = score
-    elif ptm == 'b':
-        label = -score
-    else:
-        raise Exception(f'invalid ptm {ptm}')
-
     assert(2 <= len(ind) <= 32)
     assert(2 <= len(flipped_ind) <= 32)
 
-    return ind, flipped_ind, label
+    score = score / 100.0 # centi-pawns to pawns
+    if ptm == 'w':
+        wscore = score
+    elif ptm == 'b':
+        wscore = -score
+    else:
+        raise Exception(f'invalid ptm {ptm}')
+
+    win_ratio = (wins + 0.5 * draws) / (wins + draws + losses)
+    assert 0.0 <= win_ratio <= 1.0
+    # normalize to [-1, 1]
+    win_ratio = win_ratio * 2.0 - 1.0
+
+    return ind, flipped_ind, wscore, win_ratio
 
 def build_data_loaders():
     print(f'data_path: {CFG.data_path}')

@@ -2,7 +2,7 @@ import torch
 from config import CFG
 
 NN_SIZE_L1 = 1536
-NN_SIZE_L2 = 1
+NN_SIZE_L2 = 2
 
 class Model(torch.nn.Module):
 
@@ -27,5 +27,7 @@ class Model(torch.nn.Module):
         X = torch.clamp(X, min=0.0, max=CFG.Q)
 
         X = self.fc2(X)
+        y_hat = X[:,0].unsqueeze(1)
+        y_hat2 = X[:,1].unsqueeze(1)
 
-        return X
+        return y_hat, y_hat2

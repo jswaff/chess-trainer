@@ -34,12 +34,13 @@ def main():
     model.load_state_dict(best_weights)
     loss_test = 0
     traced = False
-    for x_batch, x2_batch, y_batch in test_dl:
+    for x_batch, x2_batch, y_batch, y2_batch in test_dl:
         x_batch = x_batch.to(CFG.device)
         x2_batch = x2_batch.to(CFG.device)
         y_batch = y_batch.to(CFG.device)
-        pred = model(x_batch, x2_batch)
-        loss = loss_fn(pred, y_batch)
+        y2_batch = y2_batch.to(CFG.device)
+        y1_pred, y2_pred = model(x_batch, x2_batch)
+        loss = loss_fn(y1_pred, y_batch) + loss_fn(y2_pred, y2_batch)
         loss_test += loss.item()
         # trace model and save in torch script format
         if not traced:
