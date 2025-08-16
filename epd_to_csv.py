@@ -8,8 +8,8 @@
 # e.g. 0,0,8/8/8/8/2k5/R7/7q/5K2 b - -
 # where result is 1 for a white win, 0 for a black win, or 0.5 for a draw
 
-ifile = "data/ccrl.epd"
-ofile = "data/ccrl.csv"
+ifile = "data/test-sorted.epd"
+ofile = "data/test.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     for line in infile:

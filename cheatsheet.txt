@@ -2,27 +2,31 @@ use pgn-extract to extract 10% of positions from PGN into EPD file
 
    pgn-extract -Wepd test.pgn -s | grep "\S" | awk 'NR % 10 == 0' | awk '{gsub(/c0.*c1/,"c1")}1' > test.epd
 
-use epd_to_csv.py to convert format to CSV
-
-sort file as a preprocessing step for calculating win ratio
+sort file so common EPDs are together:
 
    sort infile > outfile
 
-use calculate_win_rate.py to consolidate records with win ratios
+use epd_to_csv.py to convert format to CSV in score,result,FEN format.  purges games without clear result.
 
-Randomize order of positions
+use calculate_win_rate.py to consolidate records with win ratios.  new format is score,w,d,l,fen
 
-   sort -R infile > outfile
+Label Files.  chess4j expects CSV files to be in score,<other fields>,fen format
+
+   java -jar chess4j-6.1-uber.jar -native -mode label -depth 5 -csv in.csv -out out.csv
+
+
+Before training:
+ -- use clamp to filter out mate scores and clamp remaining scores
+ -- randomize order: sort -R infile > outfile
+
+
+----
+
+use rearrange.py to put file in format expected by trainer: fen, score, wins, draws, losses
+
+
+----
 
 If necessary, split data
 
    split --number=l/4 infile prefix
-
-Label Files
-
-   java -jar chess4j-6.1-uber.jar -native -mode label -depth 5 -csv in.csv -out out.csv
-
-use rearrange.py to put file in format expected by trainer: epd, score, wins, draws, losses
-
-Before training use clamp to filter out mate scores and clamp remaining scores
-

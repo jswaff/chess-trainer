@@ -12,8 +12,8 @@
 #
 # Note lines with duplicate FENs have been consolidated
 
-ifile = "data/positions-sorted.csv"
-ofile = "data/positions-wr.csv"
+ifile = "data/lichess-201901.csv"
+ofile = "data/lichess-201901-wr.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     current_line = infile.readline()
@@ -23,7 +23,7 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
 
     while current_line:
         current_line = current_line.strip()
-        [fen, score, result] = current_line.split(',',maxsplit=2)
+        [score, result, fen] = current_line.split(',',maxsplit=2)
         assert result in ["0.0", "0.5", "1.0"]
         if result == "1.0":
             wins += 1
@@ -32,15 +32,14 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
         else:
             losses += 1
 
-        next_line = infile.readline()
-
+        next_line = infile.readline().strip()
         next_is_same = False
         if next_line:
-            [next_fen,_] = next_line.split(',',maxsplit=1)
+            [_, _, next_fen] = next_line.split(',',maxsplit=2)
             next_is_same = fen == next_fen
 
         if not next_is_same:
-            outline = fen + ',' + score + ',' + str(wins) + ',' + str(draws) + ',' + str(losses) + '\n'
+            outline = score + ',' + str(wins) + ',' + str(draws) + ',' + str(losses) + ',' + fen + '\n'
             outfile.write(outline)
             wins = 0
             draws = 0
