@@ -1,4 +1,4 @@
-# utility script to calculate win rates for each position
+# utility script to count win/draw/loss counts for each position
 # input lines should be sorted and of format fen,score,result
 # Examples:
 #      rnbqkb1r/ppp1pp1p/6p1/3n4/3PP3/2N5/PP3PPP/R1BQKBNR b KQkq e3,-59,1.0
@@ -12,8 +12,8 @@
 #
 # Note lines with duplicate FENs have been consolidated
 
-ifile = "data/lichess-201901.csv"
-ofile = "data/lichess-201901-wr.csv"
+ifile = "data/lichess-201904-d5-sorted.csv"
+ofile = "data/lichess-201904-d5-new.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     current_line = infile.readline()

@@ -14,7 +14,7 @@ use epd_to_csv.py to convert format to CSV in fen,score,result format.  purges g
 
 use calculate_win_rate.py to calculate win ratios.  new format is fen,score,w,d,l
 
-Label Files.  chess4j expects CSV files to be in fen,score,<other fields>
+Label Files.
 
    java -jar chess4j-6.1-uber.jar -native -mode label -depth 5 -csv in.csv -out out.csv
 
