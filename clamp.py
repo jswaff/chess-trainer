@@ -1,6 +1,6 @@
 # utility script for clamping scores
 
-ifile = "data/positions.csv"
+ifile = "data/positions-merged.csv"
 ofile = "data/positions-clamped.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:

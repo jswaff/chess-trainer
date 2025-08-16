@@ -27,7 +27,7 @@ combine one or more presorted data files
 
    sort -m file1.txt file2.txt file3.txt > merged_output.txt
 
-*** consolidate again?
+use reconsolidate to merge win/draw/loss stats
 
 use clamp to filter out mate scores and clamp remaining scores
 
