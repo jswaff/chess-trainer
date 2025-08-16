@@ -1,29 +1,25 @@
-Extract 10% of positions in EPD format from PGN:
+use pgn-extract to extract 10% of positions from PGN into EPD file
 
-pgn-extract -Wepd test.pgn -s | grep "\S" | awk 'NR % 10 == 0' | awk '{gsub(/c0.*c1/,"c1")}1' > test.epd
+   pgn-extract -Wepd test.pgn -s | grep "\S" | awk 'NR % 10 == 0' | awk '{gsub(/c0.*c1/,"c1")}1' > test.epd
 
+use epd_to_csv.py to convert format to CSV
 
+sort file as a preprocessing step for calculating win ratio
 
-Remove duplicates
+   sort infile > outfile
 
-time sort -u infile > outfile
-
+use calculate_win_rate.py to consolidate records with win ratios
 
 Randomize order of positions
 
-sort -R infile > outfile
+   sort -R infile > outfile
 
-Initialize score
-cat infile  | awk '$0="0,"$0' > outfile
+If necessary, split data
 
-
-Split data 
-split --number=l/4 infile prefix
-
+   split --number=l/4 infile prefix
 
 Label Files
 
+   java -jar chess4j-6.1-uber.jar -native -mode label -depth 5 -csv in.csv -out out.csv
 
-java -jar chess4j-6.0-uber.jar -mode label -depth 2 -csv infile -out outfile
-java -jar chess4j-6.0-uber.jar -native -mode label -depth 4 -csv lichess-201904ab -out lichess-201904ab-d4.csv
 

@@ -12,8 +12,8 @@
 #
 # Note lines with duplicate FENs have been consolidated
 
-ifile = "data/positions.csv"
-ofile = "data/positions-preprocessed.csv"
+ifile = "data/positions-sorted.csv"
+ofile = "data/positions-wr.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     current_line = infile.readline()
