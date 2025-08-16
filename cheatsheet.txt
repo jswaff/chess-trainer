@@ -22,5 +22,7 @@ Label Files
 
    java -jar chess4j-6.1-uber.jar -native -mode label -depth 5 -csv in.csv -out out.csv
 
-Use clamp to filter out mate scores and clamp remaining scores
+use rearrange.py to put file in format expected by trainer: epd, score, wins, draws, losses
+
+Before training use clamp to filter out mate scores and clamp remaining scores
 
