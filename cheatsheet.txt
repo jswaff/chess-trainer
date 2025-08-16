@@ -1,3 +1,7 @@
+=============================================================================
+To create new data file
+=============================================================================
+
 use pgn-extract to extract 10% of positions from PGN into EPD file
 
    pgn-extract -Wepd test.pgn -s | grep "\S" | awk 'NR % 10 == 0' | awk '{gsub(/c0.*c1/,"c1")}1' > test.epd
@@ -6,27 +10,28 @@ sort file so common EPDs are together:
 
    sort infile > outfile
 
-use epd_to_csv.py to convert format to CSV in score,result,FEN format.  purges games without clear result.
+use epd_to_csv.py to convert format to CSV in fen,score,result format.  purges games without clear result.
 
-use calculate_win_rate.py to consolidate records with win ratios.  new format is score,w,d,l,fen
+use calculate_win_rate.py to calculate win ratios.  new format is fen,score,w,d,l
 
-Label Files.  chess4j expects CSV files to be in score,<other fields>,fen format
+Label Files.  chess4j expects CSV files to be in fen,score,<other fields>
 
    java -jar chess4j-6.1-uber.jar -native -mode label -depth 5 -csv in.csv -out out.csv
 
 
-Before training:
- -- use clamp to filter out mate scores and clamp remaining scores
- -- randomize order: sort -R infile > outfile
+=============================================================================
+Before training
+=============================================================================
 
+combine one or more presorted data files
 
-----
+   sort -m file1.txt file2.txt file3.txt > merged_output.txt
 
-use rearrange.py to put file in format expected by trainer: fen, score, wins, draws, losses
+*** merge scores and win ratios?
 
+use clamp to filter out mate scores and clamp remaining scores
 
-----
+randomize order
 
-If necessary, split data
+   sort -R infile > outfile
 
-   split --number=l/4 infile prefix

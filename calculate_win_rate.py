@@ -23,7 +23,7 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
 
     while current_line:
         current_line = current_line.strip()
-        [score, result, fen] = current_line.split(',',maxsplit=2)
+        [fen, score, result] = current_line.split(',',maxsplit=2)
         assert result in ["0.0", "0.5", "1.0"]
         if result == "1.0":
             wins += 1
@@ -35,11 +35,11 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
         next_line = infile.readline().strip()
         next_is_same = False
         if next_line:
-            [_, _, next_fen] = next_line.split(',',maxsplit=2)
+            [next_fen, _, _] = next_line.split(',',maxsplit=2)
             next_is_same = fen == next_fen
 
         if not next_is_same:
-            outline = score + ',' + str(wins) + ',' + str(draws) + ',' + str(losses) + ',' + fen + '\n'
+            outline = fen + ',' + score + ',' + str(wins) + ',' + str(draws) + ',' + str(losses) + '\n'
             outfile.write(outline)
             wins = 0
             draws = 0
