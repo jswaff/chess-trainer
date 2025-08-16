@@ -23,7 +23,7 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
         elif result == '1/2-1/2':
             iresult = 0.5
         else:
-            print(f'skipping {fen} with result {result}')
+            #print(f'skipping {fen} with result {result}')
             continue
         outline = '0,' + str(iresult) + ',' + fen + '\n'
         outfile.write(outline)

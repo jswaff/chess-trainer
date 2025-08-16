@@ -1,20 +1,17 @@
-Extract 10% of positions in FEN format from PGN:
-
-pgn-extract -Wfen <pgnfile> --notags -s | grep "\S"  | awk 'NR % 10 == 0' > <fenfile>
-
-use -Wepd to get game result
-pgn-extract -Wepd <pgnfile> --notags -s | grep "\S"  | awk 'NR % 10 == 0' > <epdfile>
+Extract 10% of positions in EPD format from PGN:
 
 pgn-extract -Wepd test.pgn -s | grep "\S" | awk 'NR % 10 == 0' | awk '{gsub(/c0.*c1/,"c1")}1' > test.epd
 
+
+
 Remove duplicates
+
 time sort -u infile > outfile
+
 
 Randomize order of positions
 
 sort -R infile > outfile
--OR-
-shuf infile > outfile  (note this reads everything into memory)
 
 Initialize score
 cat infile  | awk '$0="0,"$0' > outfile
