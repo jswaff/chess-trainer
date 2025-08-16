@@ -12,7 +12,7 @@ sort file so common EPDs are together:
 
 use epd_to_csv.py to convert format to CSV in fen,score,result format.  purges games without clear result.
 
-use calculate_win_rate.py to calculate win ratios.  new format is fen,score,w,d,l
+use consolidate.py to merge positions and calculate w/d/l stats. new format is fen,score,w,d,l
 
 Label Files.
 
@@ -27,7 +27,7 @@ combine one or more presorted data files
 
    sort -m file1.txt file2.txt file3.txt > merged_output.txt
 
-*** merge scores and win ratios?
+*** consolidate again?
 
 use clamp to filter out mate scores and clamp remaining scores
 
