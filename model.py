@@ -1,7 +1,7 @@
 import torch
 from config import CFG
 
-NN_SIZE_L1 = 512
+NN_SIZE_L1 = 384
 NN_SIZE_L2 = 2
 
 class Model(torch.nn.Module):
