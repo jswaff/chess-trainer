@@ -3,7 +3,7 @@ import torch
 class CFG:
     data_path = 'data/positions.csv'
     input_model_name = None
-    output_model_name = 'models/nn-30.pt'
+    output_model_name = 'models/nn-32.pt'
 
     batch_size = 1024 * 16
     num_workers = 8
