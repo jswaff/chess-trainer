@@ -17,7 +17,7 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
     training_start_time = time.time()
     orig_early_stop_cnt = CFG.early_stop_counter
     early_stop_cnt = orig_early_stop_cnt
-    print('Epoch        Train        Valid        QError       ETime        TTime        Delta        ESCnt')
+    print('Epoch        Train        Valid       QError        ETime        TTime        Delta        ESCnt')
     print('------------------------------------------------------------------------------------------------')
     for epoch in range(num_epochs):
         qr = (epoch+1) / num_epochs
@@ -31,17 +31,18 @@ def train(model, num_epochs, train_dl, valid_dl, loss_fn, optimizer):
             y1_pred, y2_pred  = model(x_batch, x2_batch)
             loss = loss_fn(y1_pred, y_batch) + loss_fn(y2_pred, y2_batch)
             q_error = quantization_error(model)
-            q_errors[epoch] += q_error.item()
             loss += (qr * q_error)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             loss_hist_train[epoch] += loss.item()  # this is for an entire batch
+            q_errors[epoch] += q_error.item()
             # clip weights
             with torch.no_grad():
                 for param in model.parameters():
                     param.clamp_(-CFG.Q, CFG.Q)
         loss_hist_train[epoch] /= len(train_dl)
+        q_errors[epoch] /= len(train_dl)
 
         # evaluate accuracy at end of each epoch
         model.eval()
