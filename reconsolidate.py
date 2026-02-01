@@ -12,8 +12,8 @@
 #
 # Note lines with duplicate FENs have been consolidated
 
-ifile = "data/positions-sorted.csv"
-ofile = "data/positions-merged.csv"
+ifile = "data/positions-d5-35k-sorted.csv"
+ofile = "data/positions-d5-35k-merged.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     current_line = infile.readline()

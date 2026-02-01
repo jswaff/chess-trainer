@@ -1,9 +1,9 @@
 import torch
 
 class CFG:
-    data_path = 'data/positions.csv'
+    data_path = 'data/positions-d5-35k.csv'
     input_model_name = None
-    output_model_name = 'models/nn-32.pt'
+    output_model_name = 'models/nn-48.pt'
 
     batch_size = 1024 * 16
     num_workers = 8
@@ -17,4 +17,4 @@ class CFG:
     #device = torch.device("cpu")
 
     clear_cache = True
-    show_plots = True
+    show_plots = False

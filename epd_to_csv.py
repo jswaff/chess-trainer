@@ -8,7 +8,7 @@
 # e.g. 8/8/8/8/2k5/R7/7q/5K2 b - -,0,0
 # where result is 1 for a white win, 0 for a black win, or 0.5 for a draw
 
-ifile = "data/lichess-201901-sorted.epd"
+ifile = "data/lichess-201901.epd"
 ofile = "data/lichess-201901.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:

@@ -12,8 +12,8 @@
 #
 # Note lines with duplicate FENs have been consolidated
 
-ifile = "data/lichess-201904-d5-sorted.csv"
-ofile = "data/lichess-201904-d5-new.csv"
+ifile = "data/lichess-201901-d5-sorted.csv"
+ofile = "data/lichess-201901-d5-new.csv"
 
 with open(ifile, "r") as infile, open(ofile, "w") as outfile:
     current_line = infile.readline()
