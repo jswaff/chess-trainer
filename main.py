@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import multiprocessing
 
 from config import CFG
 from data import build_data_loaders, clear_cache_dir
@@ -50,4 +51,5 @@ def main():
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('fork')
     main()
