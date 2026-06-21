@@ -1,9 +1,13 @@
 # utility script for clamping scores
 
-ifile = "data/positions-d5-35k-merged.csv"
-ofile = "data/positions-d5-35k-clamped.csv"
+import argparse
 
-with open(ifile, "r") as infile, open(ofile, "w") as outfile:
+parser = argparse.ArgumentParser(description="Clamp score values in a chess position CSV file.")
+parser.add_argument("ifile", help="Path to the input CSV file")
+parser.add_argument("ofile", help="Path to the output CSV file")
+args = parser.parse_args()
+
+with open(args.ifile, "r") as infile, open(args.ofile, "w") as outfile:
     for line in infile:
         line = line.strip()
         [fen,score,wins,draws,losses] = line.split(',')

@@ -1,9 +1,9 @@
 import torch
 
 class CFG:
-    data_path = 'data/positions-d5-35k.csv'
+    data_path = 'data/positions-nn-53.csv'
     input_model_name = None
-    output_model_name = 'models/nn-52.pt'
+    output_model_name = 'models/nn-53.pt'
 
     batch_size = 1024 * 16
     num_workers = 8

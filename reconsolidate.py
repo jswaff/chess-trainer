@@ -12,10 +12,16 @@
 #
 # Note lines with duplicate FENs have been consolidated
 
-ifile = "data/positions-d5-35k-sorted.csv"
-ofile = "data/positions-d5-35k-merged.csv"
+import argparse
 
-with open(ifile, "r") as infile, open(ofile, "w") as outfile:
+parser = argparse.ArgumentParser(
+    description="Merge duplicate chess position records from a sorted input CSV into a consolidated output CSV."
+)
+parser.add_argument("ifile", help="Path to the input CSV file")
+parser.add_argument("ofile", help="Path to the output CSV file")
+args = parser.parse_args()
+
+with open(args.ifile, "r") as infile, open(args.ofile, "w") as outfile:
     current_line = infile.readline()
     wins = 0
     draws = 0
@@ -23,7 +29,7 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
 
     while current_line:
         current_line = current_line.strip()
-        [fen, score, curr_wins, curr_draws, curr_losses] = current_line.split(',',maxsplit=4)
+        [fen, score, curr_wins, curr_draws, curr_losses] = current_line.split(',', maxsplit=4)
         wins += int(curr_wins)
         draws += int(curr_draws)
         losses += int(curr_losses)
@@ -31,7 +37,7 @@ with open(ifile, "r") as infile, open(ofile, "w") as outfile:
         next_line = infile.readline().strip()
         next_is_same = False
         if next_line:
-            [next_fen, _, _, _, _] = next_line.split(',',maxsplit=4)
+            [next_fen, _, _, _, _] = next_line.split(',', maxsplit=4)
             next_is_same = fen == next_fen
 
         if not next_is_same:
